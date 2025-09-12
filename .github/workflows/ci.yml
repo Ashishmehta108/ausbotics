@@ -27,7 +27,7 @@ jobs:
           cache-dependency-path: ./ausbotics-frontend/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --force
 
       - name: Build Next.js app
         run: npm run build

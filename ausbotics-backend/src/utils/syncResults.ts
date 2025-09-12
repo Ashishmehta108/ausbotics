@@ -12,7 +12,7 @@ export const syncResultsFromSheet = async (workflowId: string, userId: string) =
     const savedResults = [];
 
     for (const row of sheetData) {
-        const existing = await prisma.result.findFirst({
+        const existing = await prisma.workflowExecution.findFirst({
             where: {
                 workflowId,
                 data: JSON.stringify(row),
@@ -21,7 +21,7 @@ export const syncResultsFromSheet = async (workflowId: string, userId: string) =
 
 
         if (!existing) {
-            const result = await prisma.result.create({
+            const result = await prisma.workflowExecution.create({
                 data: {
                     workflowId,
                     userId,

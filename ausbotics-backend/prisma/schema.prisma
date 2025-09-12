@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id               String              @id @default(uuid())
+  email            String              @unique
+  password         String
+  fullName         String?
+  role             Role                @default(USER)
+  refreshToken     String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt 
+  workflows        Workflow[]          @relation("WorkflowUsers")
+  workflowExecutions WorkflowExecution[]
+
+}
+
+model Workflow {
+  id           String        @id @default(uuid())
+  name         String        @unique
+  description  String
+  status       WorkflowStatus @default(New)
+  progress     Int           @default(0)
+  createdAt    DateTime      @default(now())
+  assignedUsers User[]       @relation("WorkflowUsers")
+  results      WorkflowExecution[]
+}
+
+model WorkflowExecution {
+  id             String   @id @default(uuid())
+  workflowId     String
+  userId         String
+  agentMessages  String?
+  callbackBooked Boolean  @default(false)
+  leadName       String?
+  leadPhone      String?
+  leadEmail      String?
+  data           String?
+  status         WorkflowExecutionStatus @default(None)
+  progress       Int      @default(0)
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id])
+  workflow       Workflow @relation(fields: [workflowId], references: [id])
+}
+
+model Appointment {
+  id            String   @id @default(uuid())
+  name          String
+  email         String
+  preferredDate DateTime
+  preferredTime String
+  purpose       String
+  status        AppointmentStatus @default(Pending)
+  createdAt     DateTime @default(now())
+}
+
+enum Role {
+  USER
+  ADMIN
+  SUPERADMIN
+}
+
+enum WorkflowStatus {
+  Active
+  Paused
+  Done
+  New
+}
+
+
+enum WorkflowExecutionStatus { 
+ ToolCall
+ LeadBooked
+ None
+}
+
+enum AppointmentStatus {
+  Pending
+  Confirmed
+  Cancelled
+}

@@ -1,0 +1,311 @@
+@baseUrl = http://localhost:5000
+@contentType = application/json
+
+
+# @name signup
+POST {{baseUrl}}/api/auth/signup HTTP/1.1
+Content-Type: {{contentType}}
+
+{
+  "email": "newuser@example.com",
+  "password": "password123",
+  "role": "USER"
+}
+
+
+# @name login
+POST {{baseUrl}}/api/auth/login HTTP/1.1
+Content-Type: {{contentType}}
+
+{
+  "email": "newuser@example.com",
+  "password": "password123",
+  "role":"USER"
+}
+
+
+# @name adminLogin
+POST {{baseUrl}}/api/auth/login HTTP/1.1
+Content-Type: {{contentType}}
+
+{
+  "email": "admin@example.com",
+  "password": "password123"
+}
+
+
+# @name superadminLogin
+POST {{baseUrl}}/api/auth/login HTTP/1.1
+Content-Type: {{contentType}}
+
+{
+  "email": "superadmin@example.com",
+  "password": "password123"
+}
+
+### Get auth token from login response
+@authToken = {{login.response.body.accessToken}}
+@adminToken = {{adminLogin.response.body.accessToken}}
+@superadminToken = {{superadminLogin.response.body.accessToken}}
+
+###
+
+# @name getCurrentUser
+GET {{baseUrl}}/api/auth/me
+Authorization: Bearer {{authToken}}
+
+###
+
+# @name forgotPassword
+POST {{baseUrl}}/api/auth/forgot-password
+Content-Type: {{contentType}}
+
+{
+  "email": "user@example.com"
+}
+
+###
+
+# @name resetPassword
+POST {{baseUrl}}/api/auth/reset-password
+Content-Type: {{contentType}}
+
+{
+  "token": "reset-token-from-email",
+  "password": "newPassword123",
+  "passwordConfirm": "newPassword123"
+}
+
+###
+
+# @name logout
+POST {{baseUrl}}/api/auth/logout
+Authorization: Bearer {{authToken}}
+
+### Users
+
+# Get all users (Admin/Superadmin only)
+GET {{baseUrl}}/api/users
+Authorization: Bearer {{adminToken}}
+
+GET {{baseUrl}}/api/workflows
+Authorization: Bearer {{authToken}}
+
+POST {{baseUrl}}/api/workflows
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "name": "New Workflow",
+  "description": "Workflow description",
+  "n8nId": "n8n-workflow-id-123"
+}
+
+GET {{baseUrl}}/api/workflows/1
+Authorization: Bearer {{authToken}}
+
+PUT {{baseUrl}}/api/workflows/1
+Content-Type: {{contentType}}
+Authorization: Bearer {{adminToken}}
+
+{
+  "name": "Updated Workflow Name",
+  "description": "Updated description"
+}
+
+# Delete workflow (Admin, Superadmin)
+DELETE {{baseUrl}}/api/workflows/1
+Authorization: Bearer {{adminToken}}
+
+# Activate workflow (Superadmin only)
+POST {{baseUrl}}/api/workflows/1/activate
+Authorization: Bearer {{superadminToken}}
+
+# Deactivate workflow (Superadmin only)
+POST {{baseUrl}}/api/workflows/1/deactivate
+Authorization: Bearer {{superadminToken}}
+
+### Workflow Steps
+
+# Get all steps for a workflow
+GET {{baseUrl}}/api/workflows/1/steps
+Authorization: Bearer {{authToken}}
+
+# Add a step to a workflow (Admin/Superadmin only)
+POST {{baseUrl}}/api/workflows/1/steps
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "Email Verification",
+  "description": "Send verification email to user",
+  "order": 1,
+  "actionType": "EMAIL",
+  "actionConfig": {
+    "templateId": "email-verification",
+    "subject": "Verify your email"
+  },
+  "isRequired": true
+}
+
+# Update a workflow step (Admin/Superadmin only)
+PUT {{baseUrl}}/api/workflows/1/steps/1
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "Updated Step Name",
+  "description": "Updated step description",
+  "order": 1,
+  "isRequired": true
+}
+
+# Delete a workflow step (Superadmin only)
+DELETE {{baseUrl}}/api/workflows/1/steps/1
+Authorization: Bearer {{superadminToken}}
+
+### Workflow Executions
+
+# Start a new workflow execution
+POST {{baseUrl}}/api/workflows/1/executions
+Authorization: Bearer {{authToken}}
+Content-Type: {{contentType}}
+
+{
+  "initiatedBy": "user@example.com",
+  "context": {
+    "userId": "123",
+    "userEmail": "user@example.com"
+  }
+}
+
+# Get all workflow executions
+GET {{baseUrl}}/api/workflows/1/executions
+Authorization: Bearer {{authToken}}
+
+# Get a specific workflow execution
+GET {{baseUrl}}/api/workflows/1/executions/1
+Authorization: Bearer {{authToken}}
+
+# Update workflow execution status
+PATCH {{baseUrl}}/api/workflows/1/executions/1/status
+Authorization: Bearer {{authToken}}
+Content-Type: {{contentType}}
+
+{
+  "status": "COMPLETED",
+  "output": {
+    "message": "Workflow completed successfully"
+  }
+}
+
+### Workflow Step Executions
+
+# Complete a workflow step
+POST {{baseUrl}}/api/workflows/1/executions/1/steps/1/complete
+Authorization: Bearer {{authToken}}
+Content-Type: {{contentType}}
+
+{
+  "status": "SUCCESS",
+  "output": {
+    "emailSent": true,
+    "messageId": "abc123"
+  }
+}
+
+# Get all step executions for a workflow execution
+GET {{baseUrl}}/api/workflows/1/executions/1/steps
+Authorization: Bearer {{authToken}}
+
+# Get a specific step execution
+GET {{baseUrl}}/api/workflows/1/executions/1/steps/1
+Authorization: Bearer {{authToken}}
+
+### Workflow Triggers
+
+# Trigger a workflow manually (Admin/Superadmin only)
+POST {{baseUrl}}/api/workflows/1/trigger
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "triggerType": "MANUAL",
+  "initiatedBy": "admin@example.com",
+  "context": {
+    "targetUser": "user@example.com",
+    "additionalData": {}
+  }
+}
+
+### Workflow Webhooks
+
+# Register a webhook for workflow events (Admin/Superadmin only)
+POST {{baseUrl}}/api/workflows/webhooks
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "On Workflow Completed",
+  "url": "https://your-webhook-url.com/workflow-completed",
+  "events": ["WORKFLOW_COMPLETED", "WORKFLOW_FAILED"],
+  "isActive": true,
+  "secret": "your-webhook-secret"
+}
+
+# List all webhooks (Admin/Superadmin only)
+GET {{baseUrl}}/api/workflows/webhooks
+Authorization: Bearer {{adminToken}}
+
+# Delete a webhook (Superadmin only)
+DELETE {{baseUrl}}/api/workflows/webhooks/1
+Authorization: Bearer {{superadminToken}}
+
+### Results
+
+# Get all results
+GET {{baseUrl}}/api/results
+Authorization: Bearer {{authToken}}
+
+# Create a new result (User only)
+POST {{baseUrl}}/api/results
+Authorization: Bearer {{authToken}}
+Content-Type: {{contentType}}
+
+{
+  "workflowId": "1",
+  "data": {
+    "lead": "John Smith",
+    "status": "new",
+    "agentMessages": ["Initial contact"],
+    "callbackBooked": false
+  }
+}
+
+# Get result by ID
+@resultId = 1
+GET {{baseUrl}}/api/results/{{resultId}}
+Authorization: Bearer {{authToken}}
+
+# Update result (Superadmin only)
+PUT {{baseUrl}}/api/results/{{resultId}}
+Authorization: Bearer {{superadminToken}}
+Content-Type: {{contentType}}
+
+{
+  "data": {
+    "status": "contacted",
+    "agentMessages": ["Initial contact", "Follow up sent"],
+    "callbackBooked": true
+  }
+}
+
+# Delete result (Superadmin only)
+DELETE {{baseUrl}}/api/results/{{resultId}}
+Authorization: Bearer {{superadminToken}}
+
+### Dummy Endpoint
+
+# Get dummy data
+GET {{baseUrl}}/api/dummy
+Authorization: Bearer {{authToken}}

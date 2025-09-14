@@ -1,8 +1,8 @@
-import { Request, Response, NextFunction } from 'express';
-import { prisma } from '../models/client';
-import { AppointmentStatus, Role } from '@prisma/client';
-import { AppError } from '../middlewares/error.middleware';
-import { AuthRequest } from '../middlewares/auth.middleware';
+import { Request, Response, NextFunction } from "express";
+import { prisma } from "../models/client";
+import { AppointmentStatus } from "@prisma/client";
+import { AppError } from "../middlewares/error.middleware";
+import { AuthRequest } from "../middlewares/auth.middleware";
 
 export const bookAppointment = async (
   req: Request,
@@ -11,11 +11,9 @@ export const bookAppointment = async (
 ) => {
   try {
     const { name, email, preferredDate, preferredTime, purpose } = req.body;
-
     if (!name || !email || !preferredDate || !preferredTime || !purpose) {
-      return next(new AppError('Please provide all required fields', 400));
+      return next(new AppError("Please provide all required fields", 400));
     }
-
     const appointment = await prisma.appointment.create({
       data: {
         name,
@@ -23,11 +21,11 @@ export const bookAppointment = async (
         preferredDate: new Date(preferredDate),
         preferredTime,
         purpose,
-        status: 'Pending',
+        status: "Pending",
       },
     });
     res.status(201).json({
-      status: 'success',
+      status: "success",
       data: {
         appointment,
       },
@@ -44,7 +42,8 @@ export const getAllAppointments = async (
 ) => {
   try {
     const { status } = req.query;
-
+   
+    
     const where: any = {};
     if (status) {
       where.status = status as AppointmentStatus;
@@ -53,12 +52,12 @@ export const getAllAppointments = async (
     const appointments = await prisma.appointment.findMany({
       where,
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
     });
 
     res.status(200).json({
-      status: 'success',
+      status: "success",
       results: appointments.length,
       data: {
         appointments,
@@ -76,17 +75,19 @@ export const getAppointment = async (
 ) => {
   try {
     const { id } = req.params;
-
+    if (!id) {
+      return next(new AppError("Appointment ID is required", 400));
+    }
     const appointment = await prisma.appointment.findUnique({
       where: { id },
     });
 
     if (!appointment) {
-      return next(new AppError('No appointment found with that ID', 404));
+      return next(new AppError("No appointment found with that ID", 404));
     }
 
     res.status(200).json({
-      status: 'success',
+      status: "success",
       data: {
         appointment,
       },
@@ -96,7 +97,6 @@ export const getAppointment = async (
   }
 };
 
-// Update appointment status (admin only)
 export const updateAppointmentStatus = async (
   req: AuthRequest,
   res: Response,
@@ -105,29 +105,31 @@ export const updateAppointmentStatus = async (
   try {
     const { id } = req.params;
     const { status } = req.body;
-
-    // Validate status
+    if (!id) {
+      return next(new AppError("Appointment ID is required", 400));
+    }
+    if (!status) {
+      return next(new AppError("Status is required", 400));
+    }
     if (!Object.values(AppointmentStatus).includes(status)) {
-      return next(new AppError('Invalid appointment status', 400));
+      return next(new AppError("Invalid appointment status", 400));
     }
 
-    // Check if appointment exists
     const existingAppointment = await prisma.appointment.findUnique({
       where: { id },
     });
 
     if (!existingAppointment) {
-      return next(new AppError('No appointment found with that ID', 404));
+      return next(new AppError("No appointment found with that ID", 404));
     }
 
-    // Update status
     const updatedAppointment = await prisma.appointment.update({
       where: { id },
       data: { status },
     });
 
     res.status(200).json({
-      status: 'success',
+      status: "success",
       data: {
         appointment: updatedAppointment,
       },
@@ -137,7 +139,6 @@ export const updateAppointmentStatus = async (
   }
 };
 
-// Delete an appointment (admin only)
 export const deleteAppointment = async (
   req: AuthRequest,
   res: Response,
@@ -145,23 +146,23 @@ export const deleteAppointment = async (
 ) => {
   try {
     const { id } = req.params;
-
-    // Check if appointment exists
+    if (!id) {
+      return next(new AppError("Appointment ID is required", 400));
+    }
     const existingAppointment = await prisma.appointment.findUnique({
       where: { id },
     });
 
     if (!existingAppointment) {
-      return next(new AppError('No appointment found with that ID', 404));
+      return next(new AppError("No appointment found with that ID", 404));
     }
 
-    // Delete appointment
     await prisma.appointment.delete({
       where: { id },
     });
 
     res.status(204).json({
-      status: 'success',
+      status: "success",
       data: null,
     });
   } catch (error: any) {
@@ -169,7 +170,6 @@ export const deleteAppointment = async (
   }
 };
 
-// Get user's appointments
 export const getUserAppointments = async (
   req: AuthRequest,
   res: Response,
@@ -177,16 +177,18 @@ export const getUserAppointments = async (
 ) => {
   try {
     const { email } = req.params;
-
+    if (!email) {
+      return next(new AppError("Email is required", 400));
+    }
     const appointments = await prisma.appointment.findMany({
       where: { email },
       orderBy: {
-        preferredDate: 'asc',
+        preferredDate: "asc",
       },
     });
 
     res.status(200).json({
-      status: 'success',
+      status: "success",
       results: appointments.length,
       data: {
         appointments,

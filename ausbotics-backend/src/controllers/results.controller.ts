@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import { Response, NextFunction } from "express";
 import { prisma } from "../models/client";
 import { AppError } from "../middlewares/error.middleware";
 import { AuthRequest } from "../middlewares/auth.middleware";
@@ -9,13 +9,16 @@ export const createWorkflowExecution = async (
   next: NextFunction
 ) => {
   try {
-    const { workflowId, data, summary, leads, tickets, appointments } = req.body;
+    const { workflowId, data, summary, leads, tickets, appointments } =
+      req.body;
     if (!workflowId) return next(new AppError("workflowId is required", 400));
 
-    const workflow = await prisma.workflow.findUnique({ where: { id: workflowId } });
+    const workflow = await prisma.workflow.findUnique({
+      where: { id: workflowId },
+    });
     if (!workflow) return next(new AppError("Workflow not found", 404));
 
-    const execution = await prisma.execution.create({
+    const execution = await prisma.executionResult.create({
       data: {
         workflowId,
         status: "None",
@@ -33,13 +36,15 @@ export const createWorkflowExecution = async (
         executionId: execution.id,
         userId: req.user!.id,
         data: data ? JSON.stringify(data) : null,
-        agentMessages: data?.agentMessages ? JSON.stringify(data.agentMessages) : null,
+        agentMessages: data?.agentMessages
+          ? JSON.stringify(data.agentMessages)
+          : null,
         callbackBooked: data?.callbackBooked ?? false,
         leadName: data?.leadName ?? null,
         leadPhone: data?.leadPhone ?? null,
         leadEmail: data?.leadEmail ?? null,
       },
-      include: { execution: true },
+      include: { result: true },
     });
 
     res.status(201).json(workflowExecution);
@@ -59,11 +64,10 @@ export const getWorkflowExecutions = async (
     const results = await prisma.workflowExecution.findMany({
       where,
       include: {
-        execution: true,
-
+        result: true,
       },
     });
-console.log(results)
+    console.log(results);
     res.json(results);
   } catch (err: any) {
     next(new AppError(err.message, 500));
@@ -79,7 +83,7 @@ export const getWorkflowExecutionById = async (
     const { id } = req.params;
     const result = await prisma.workflowExecution.findUnique({
       where: { id },
-      include: { execution: true },
+      include: { result: true },
     });
 
     if (!result) return next(new AppError("Result not found", 404));
@@ -104,9 +108,10 @@ export const updateWorkflowExecution = async (
     const workflowExecution = await prisma.workflowExecution.findUnique({
       where: { id },
     });
-    if (!workflowExecution) return next(new AppError("Execution not found", 404));
+    if (!workflowExecution)
+      return next(new AppError("Execution not found", 404));
 
-    await prisma.execution.update({
+    await prisma.executionResult.update({
       where: { id: workflowExecution.executionId },
       data: {
         summary,
@@ -121,7 +126,7 @@ export const updateWorkflowExecution = async (
       data: {
         data: data ? JSON.stringify(data) : undefined,
       },
-      include: { execution: true },
+      include: { result: true },
     });
 
     res.json(updated);
@@ -129,4 +134,3 @@ export const updateWorkflowExecution = async (
     next(new AppError(err.message, 500));
   }
 };
-

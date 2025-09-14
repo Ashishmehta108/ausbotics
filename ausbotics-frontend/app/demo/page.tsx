@@ -4,7 +4,6 @@ import { DemoVideo } from "@/components/demo-video"
 import { DemoProcess } from "@/components/demo-process"
 import { DemoTestimonials } from "@/components/demo-testimonials"
 import { AppointmentBooking } from "@/components/appointment-booking"
-
 export default function DemoPage() {
   return (
     <main className="min-h-screen">

@@ -4,7 +4,7 @@ import { AppError } from "./error.middleware";
 import { Role } from "@prisma/client";
 
 export const authorize = (roles: Role[]) => {
-  return (req: AuthRequest, res: Response, next: NextFunction) => {
+  return (req: AuthRequest, _: Response, next: NextFunction) => {
     if (!req.user) {
       return next(new AppError("Unauthorized: no user info found", 401));
     }

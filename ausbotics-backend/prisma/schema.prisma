@@ -5,7 +5,6 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -31,9 +30,9 @@ model Workflow {
   subscribedUserId   String
   subscribedUser     User                @relation("WorkflowUsers", fields: [subscribedUserId], references: [id])
   result             ExecutionResult?
+  googleSheet        String
   workflowExecutions WorkflowExecution[]
 }
-
 
 model WorkflowExecution {
   id             String                  @id @default(uuid())
@@ -49,25 +48,25 @@ model WorkflowExecution {
   status         WorkflowExecutionStatus @default(None)
   progress       Int                     @default(0)
   createdAt      DateTime                @default(now())
-  user      User      @relation(fields: [userId], references: [id])
-  workflow  Workflow  @relation(fields: [workflowId], references: [id])
-  result ExecutionResult @relation(fields: [executionId], references: [id])
+  user           User                    @relation(fields: [userId], references: [id])
+  workflow       Workflow                @relation(fields: [workflowId], references: [id])
+  result         ExecutionResult         @relation(fields: [executionId], references: [id])
 }
 
 model ExecutionResult {
-  id              String                  @id @default(uuid())
-  workflowId      String                  @unique
-  startTime       DateTime?               @default(now())
-  endTime         DateTime?
-  status          WorkflowExecutionStatus @default(None)
-  totalCalls      Int?
-  successfulCalls Int?
-  failedCalls     Int?
-  leads           Json?
-  tickets         Json?
-  appointments    Json?
-  summary         Json?
-  workflow           Workflow            @relation(fields: [workflowId], references: [id])
+  id                 String                  @id @default(uuid())
+  workflowId         String                  @unique
+  startTime          DateTime?               @default(now())
+  endTime            DateTime?
+  status             WorkflowExecutionStatus @default(None)
+  totalCalls         Int?
+  successfulCalls    Int?
+  failedCalls        Int?
+  leads              Json?
+  tickets            Json?
+  appointments       Json?
+  summary            Json?
+  workflow           Workflow                @relation(fields: [workflowId], references: [id])
   workflowExecutions WorkflowExecution[]
 }
 

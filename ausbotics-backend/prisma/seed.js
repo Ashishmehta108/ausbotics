@@ -6,9 +6,11 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("🔹 Starting seed script...");
 
+  // Hash password
   const passwordHash = await bcrypt.hash("password123", 10);
   console.log("✅ Password hashed");
 
+  // --- Users ---
   console.log("👉 Upserting users...");
   const users = [
     { email: "superadmin@example.com", role: "SUPERADMIN" },
@@ -29,6 +31,7 @@ async function main() {
     console.log(`✅ Upserted user: ${upsertedUser.email}`);
   }
 
+  // --- Workflows ---
   console.log("👉 Upserting workflows...");
   const workflows = [
     {
@@ -54,28 +57,55 @@ async function main() {
         description: workflow.description,
         status: workflow.status,
         progress: workflow.progress,
+        googleSheet: "https://docs.google.com/spreadsheets/d/your-sheet-id/edit",
         subscribedUser: {
           connect: { email: "user@example.com" },
         },
+
       },
     });
     console.log(`✅ Upserted workflow: ${upsertedWorkflow.name}`);
   }
 
+  // --- Execution Results ---
   console.log("👉 Upserting execution results...");
-  const executionResult = await prisma.executionResult.upsert({
-    where: { id: "result-1" },
-    update: {},
-    create: {
-      id: "result-1",
-      workflow: {
-        connect: { name: "Sample Workflow 1" },
-      },
-      status: "None",
-      totalCalls: 0,
-    },
+  const workflow1 = await prisma.workflow.findUnique({
+    where: { name: "Sample Workflow 1" },
   });
-  console.log(`✅ Upserted execution result: ${executionResult.id}`);
+
+  if (workflow1) {
+    const executionResult = await prisma.executionResult.upsert({
+      where: { workflowId: workflow1.id }, // workflowId is unique
+      update: {},
+      create: {
+        workflowId: workflow1.id,
+        status: "None",
+        totalCalls: 0,
+      },
+    });
+    console.log(`✅ Upserted execution result for workflow: ${workflow1.name}`);
+
+    console.log("👉 Creating workflow execution...");
+    const user = await prisma.user.findUnique({
+      where: { email: "user@example.com" },
+    });
+
+    if (user) {
+      const workflowExecution = await prisma.workflowExecution.upsert({
+        where: { id: "exec-1" },
+        update: {},
+        create: {
+          id: "exec-1",
+          workflowId: workflow1.id,
+          executionId: executionResult.id,
+          userId: user.id,
+          status: "None",
+          progress: 0,
+        },
+      });
+      console.log(`✅ Created workflow execution: ${workflowExecution.id}`);
+    }
+  }
 }
 
 main()

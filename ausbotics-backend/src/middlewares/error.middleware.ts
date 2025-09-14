@@ -14,16 +14,15 @@ export class AppError extends Error {
 
 export const errorHandler = (
   err: any,
-  req: Request,
+  _: Request,
   res: Response,
   next: NextFunction
 ) => {
-  console.error("🔥 Error caught:", err);
+  console.error(" Error caught:", err);
 
   let statusCode = 500;
   let message = "Internal Server Error";
 
-  // JWT-specific errors
   if (err.message === "Token has expired") {
     statusCode = 401;
     message = "Access token expired";
@@ -35,13 +34,11 @@ export const errorHandler = (
     message = "Authentication failed";
   }
 
-  // Prisma errors
   if (typeof err.code === "string" && err.code.startsWith("P")) {
     statusCode = 400;
     message = err.meta?.cause || err.message || "Database error";
   }
 
-  // Custom AppError
   if (err instanceof AppError && err.isOperational) {
     statusCode = err.statusCode;
     message = err.message;

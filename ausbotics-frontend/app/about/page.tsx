@@ -10,7 +10,6 @@ export default function AboutPage() {
       <Navigation />
       <AboutHero />
       <ProblemSolution />
-      
       <CompanyValues />
     </main>
   )

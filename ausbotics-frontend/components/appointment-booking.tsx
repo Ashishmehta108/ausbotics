@@ -62,7 +62,7 @@ export function AppointmentBooking() {
     }
 
     try {
-      const success = bookAppointment({
+      const success = await bookAppointment({
         name: formData.name,
         email: formData.email,
         preferredDate: formData.preferredDate,

@@ -7,248 +7,232 @@ import { AuthRequest } from "../middlewares/auth.middleware";
 
 const N8N_BASE = process.env.N8N_BASE_URL || "http://localhost:5678";
 
-export const activateWorkflow = async (req: Request, res: Response) => {
-  const { id } = req.params;
+export const activateWorkflow = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    await axios.post(`${N8N_BASE}/workflows/${id}/activate`);
-    res.json({ message: "Workflow activated" });
+    const { id } = req.params
+    console.log(`Activating workflow ${id}`)
+    await axios.post(`${N8N_BASE}/workflows/${id}/activate`)
+
+    const workflow = await prisma.workflow.findUnique({
+      where: { id },
+      include: { workflowExecutions: { orderBy: { createdAt: "desc" }, take: 1 } }
+    })
+
+    res.status(200).json({
+      status: "success",
+      data: { workflow, latestExecutionProgress: workflow?.workflowExecutions[0]?.progress ?? 0 }
+    })
   } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    console.error(`Error activating workflow ${req.params.id}:`, err.message)
+    next(new AppError(err.message, 500))
   }
-};
+}
 
-export const deactivateWorkflow = async (req: Request, res: Response) => {
-  const { id } = req.params;
+export const deactivateWorkflow = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    await axios.post(`${N8N_BASE}/workflows/${id}/deactivate`);
-    res.json({ message: "Workflow deactivated" });
+    const { id } = req.params
+    console.log(`Deactivating workflow ${id}`)
+    await axios.post(`${N8N_BASE}/workflows/${id}/deactivate`)
+
+    const workflow = await prisma.workflow.findUnique({
+      where: { id },
+      include: { workflowExecutions: { orderBy: { createdAt: "desc" }, take: 1 } }
+    })
+
+    res.status(200).json({
+      status: "success",
+      data: { workflow, latestExecutionProgress: workflow?.workflowExecutions[0]?.progress ?? 0 }
+    })
   } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    console.error(`Error deactivating workflow ${req.params.id}:`, err.message)
+    next(new AppError(err.message, 500))
   }
-};
+}
 
-export const createWorkflow = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-) => {
+export const updateWorkflow = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { name, description, status = "New" as WorkflowStatus } = req.body;
-    const userId = req.user?.id;
+    const { id } = req.params
+    const { name, description, status } = req.body
 
-    if (!userId) {
-      return next(new AppError("User not authenticated", 401));
-    }
+    const updatedWorkflow = await prisma.workflow.update({
+      where: { id },
+      data: { name, description, status },
+      include: { workflowExecutions: { orderBy: { createdAt: "desc" }, take: 1 } }
+    })
 
+    res.status(200).json({
+      status: "success",
+      data: { workflow: updatedWorkflow, latestExecutionProgress: updatedWorkflow.workflowExecutions[0]?.progress ?? 0 }
+    })
+  } catch (err: any) {
+    console.error(`Error updating workflow ${req.params.id}:`, err.message)
+    next(new AppError(err.message, 400))
+  }
+}
+
+
+export const createWorkflow = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { name, description, status = "New" as WorkflowStatus, userId } = req.body;
+    console.log(`Creating workflow ${name}`);
     const workflow = await prisma.workflow.create({
       data: {
         name,
         description,
         status,
         progress: 0,
-        assignedUsers: {
-          connect: { id: userId },
-        },
+        subscribedUser: { connect: { id: userId } },
       },
       include: {
-        assignedUsers: {
-          select: {
-            id: true,
-            email: true,
-            fullName: true,
-            role: true,
-          },
-        },
+        subscribedUser: { select: { id: true, email: true, fullName: true, role: true } },
       },
     });
 
-    res.status(201).json({
-      status: "success",
-      data: {
-        workflow,
-      },
-    });
-  } catch (error: any) {
-    next(new AppError(error.message, 400));
+    console.log(`Workflow created: ${workflow.id}`);
+    res.status(201).json({ status: "success", data: { workflow } });
+  } catch (err: any) {
+    console.error("Error creating workflow:", err.message);
+    next(new AppError(err.message, 400));
   }
 };
 
-// Get all workflows
-export const getAllWorkflows = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const getAllWorkflows = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    console.log("Fetching all workflows...");
     const workflows = await prisma.workflow.findMany({
-      include: {
-        assignedUsers: {
-          select: {
-            id: true,
-            email: true,
-            fullName: true,
-            role: true,
-          },
-        },
-        results: {
-          select: {
-            id: true,
-            status: true,
-            progress: true,
-            createdAt: true,
-          },
-          orderBy: {
-            createdAt: "desc",
-          },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        status: true,
+        progress: true,
+        subscribedUser: { select: { id: true, email: true, fullName: true, role: true } },
+        workflowExecutions: {
+          select: { progress: true },
+          orderBy: { createdAt: "desc" },
           take: 1,
         },
+        result: { select: { id: true, status: true } },
       },
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    // Map latest execution progress
+    const workflowsWithProgress = workflows.map(w => ({
+      ...w,
+      latestExecutionProgress: w.workflowExecutions[0]?.progress ?? 0,
+    }));
+    console.log("🔹 Logging workflows with progress:");
+
+    workflowsWithProgress.forEach((wf, index) => {
+      console.log(`\n📌 Workflow #${index + 1}: ${wf.name}`);
+      console.log(`ID: ${wf.id}`);
+      console.log(`Description: ${wf.description}`);
+      console.log(`Status: ${wf.status}`);
+      console.log(`Progress: ${wf.progress}%`);
+      console.log(`Latest Execution Progress: ${wf.latestExecutionProgress}%`);
+      const user = wf.subscribedUser
+      const exec = wf.result
+      console.log("👥 Subscribed Users:");
+      console.log(`  - ${user.fullName || user.email} (${user.role})`);
+
+
+      console.log("⚡ Executions:");
+
+      console.log(`  - Execution ID: ${exec?.id}, Status: ${exec?.status}`);
+
+      console.log("🚀 Workflow Executions Progress:");
+      wf.workflowExecutions.forEach((we, i) => {
+        console.log(`  - WorkflowExecution #${i + 1}: ${we.progress}%`);
+      });
     });
 
     res.status(200).json({
       status: "success",
-      results: workflows.length,
-      data: {
-        workflows,
-      },
+      results: workflowsWithProgress.length,
+      data: { workflows: workflowsWithProgress },
     });
-  } catch (error: any) {
-    next(new AppError(error.message, 500));
+  } catch (err: any) {
+    console.error("Error fetching workflows:", err.message);
+    next(new AppError(err.message, 500));
   }
 };
 
-export const getWorkflow = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const getWorkflow = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-
+    console.log(`Fetching workflow ${id}`);
     const workflow = await prisma.workflow.findUnique({
       where: { id },
       include: {
-        assignedUsers: {
-          select: {
-            id: true,
-            email: true,
-            fullName: true,
-            role: true,
-          },
-        },
-        results: {
-          orderBy: {
-            createdAt: "desc",
-          },
-        },
+        subscribedUser: { select: { id: true, email: true, fullName: true, role: true } },
+        result: true,
+        workflowExecutions: true
       },
     });
 
-    if (!workflow) {
-      return next(new AppError("No workflow found with that ID", 404));
-    }
+    if (!workflow) return next(new AppError("No workflow found with that ID", 404));
 
-    res.status(200).json({
-      status: "success",
-      data: {
-        workflow,
-      },
-    });
-  } catch (error: any) {
-    next(new AppError(error.message, 500));
+    const latestExecutionProgress = workflow.workflowExecutions[0]?.progress ?? 0;
+    console.log(`Workflow fetched: ${workflow.id}, latest execution progress: ${latestExecutionProgress}`);
+
+    res.status(200).json({ status: "success", data: { workflow, latestExecutionProgress } });
+  } catch (err: any) {
+    console.error(`Error fetching workflow ${req.params.id}:`, err.message);
+    next(new AppError(err.message, 500));
   }
 };
 
-export const updateWorkflow = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-) => {
+
+export const deleteWorkflow = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const { name, description, status } = req.body;
+    console.log(`Deleting workflow ${id}`);
 
-    const existingWorkflow = await prisma.workflow.findUnique({
-      where: { id },
-    });
+    const workflow = await prisma.workflow.findUnique({ where: { id } });
+    if (!workflow) return next(new AppError("No workflow found with that ID", 404));
 
-    if (!existingWorkflow) {
-      return next(new AppError("No workflow found with that ID", 404));
+    if (!["ADMIN", "SUPERADMIN"].includes(req.user!.role)) {
+      return next(new AppError("Not authorized to delete workflows", 403));
     }
 
-    if (
-      status &&
-      req.user?.role !== Role.ADMIN &&
-      req.user?.role !== Role.SUPERADMIN
-    ) {
-      return next(
-        new AppError("Not authorized to update workflow status", 403)
-      );
+    await prisma.workflow.delete({ where: { id } });
+    console.log(`Workflow deleted: ${id}`);
+    res.status(204).json({ status: "success", data: null });
+  } catch (err: any) {
+    console.error(`Error deleting workflow ${req.params.id}:`, err.message);
+    next(new AppError(err.message, 500));
+  }
+};
+
+
+export const updateWorkflowStatus = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body as { status: WorkflowStatus };
+
+    console.log(`Updating workflow ${id} to status ${status}`);
+
+    const workflow = await prisma.workflow.findUnique({ where: { id } });
+    if (!workflow) return next(new AppError("No workflow found with that ID", 404));
+
+    // Prevent updating completed workflows
+    if (workflow.status === "Done") {
+      return next(new AppError("Cannot update a completed workflow", 400));
     }
 
     const updatedWorkflow = await prisma.workflow.update({
       where: { id },
-      data: {
-        name,
-        description,
-        status,
-      },
+      data: { status },
       include: {
-        assignedUsers: {
-          select: {
-            id: true,
-            email: true,
-            fullName: true,
-            role: true,
-          },
-        },
+        subscribedUser: { select: { id: true, email: true, fullName: true, role: true } },
       },
     });
 
-    res.status(200).json({
-      status: "success",
-      data: {
-        workflow: updatedWorkflow,
-      },
-    });
-  } catch (error: any) {
-    next(new AppError(error.message, 400));
+    console.log(`Workflow ${id} updated to ${status}`);
+    res.status(200).json({ status: "success", data: { workflow: updatedWorkflow } });
+  } catch (err: any) {
+    console.error(`Error updating workflow status for ${req.params.id}:`, err.message);
+    next(new AppError(err.message, 400));
   }
 };
-
-export const deleteWorkflow = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { id } = req.params;
-
-    const existingWorkflow = await prisma.workflow.findUnique({
-      where: { id },
-    });
-
-    if (!existingWorkflow) {
-      return next(new AppError("No workflow found with that ID", 404));
-    }
-
-    if (req.user?.role !== Role.ADMIN && req.user?.role !== Role.SUPERADMIN) {
-      return next(new AppError("Not authorized to delete workflows", 403));
-    }
-
-    await prisma.workflow.delete({
-      where: { id },
-    });
-
-    res.status(204).json({
-      status: "success",
-      data: null,
-    });
-  } catch (error: any) {
-    next(new AppError(error.message, 500));
-  }
-};
-

@@ -15,7 +15,6 @@ export default function DemoPage() {
         <DemoProcess />
       </div>
       <DemoTestimonials />
-      <AppointmentBooking />
     </main>
   )
 }

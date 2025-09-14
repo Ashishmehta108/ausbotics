@@ -10,13 +10,13 @@ import { Loader2 } from "lucide-react"
 interface ProtectedRouteProps {
   children: React.ReactNode
   requireSubscription?: boolean
-  allowedRoles?: ("user" | "admin" | "superAdmin")[]
+  allowedRoles?: ("USER" | "ADMIN" | "SUPERADMIN")[]
 }
 
 export function ProtectedRoute({
   children,
   requireSubscription = false,
-  allowedRoles = ["user", "admin", "superAdmin"],
+  allowedRoles = ["USER", "ADMIN", "SUPERADMIN"],
 }: ProtectedRouteProps) {
   const { user, isLoading, hasWorkflowSubscriptions } = useAuth()
   const router = useRouter()
@@ -33,7 +33,7 @@ export function ProtectedRoute({
         return
       }
 
-      if (requireSubscription && user.role !== "superAdmin" && !hasWorkflowSubscriptions()) {
+      if (requireSubscription && user.role !== "SUPERADMIN" && !hasWorkflowSubscriptions()) {
         router.push("/")
         return
       }
@@ -55,7 +55,7 @@ export function ProtectedRoute({
     return null
   }
 
-  if (requireSubscription && user.role !== "superAdmin" && !hasWorkflowSubscriptions()) {
+  if (requireSubscription && user.role !== "SUPERADMIN" && !hasWorkflowSubscriptions()) {
     return null
   }
 

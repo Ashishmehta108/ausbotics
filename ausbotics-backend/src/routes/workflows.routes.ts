@@ -7,6 +7,8 @@ import {
   deleteWorkflow,
 } from "../controllers/workflows.controller";
 import { authenticate, restrictTo } from "../middlewares/auth.middleware";
+
+import { updateWorkflowStatus } from "../controllers/workflows.controller";
 import { Role } from "@prisma/client";
 import {
   createWorkflowExecution,
@@ -29,5 +31,14 @@ router
 
 router.post("/:id/execute", createWorkflowExecution);
 router.get("/:workflowId/executions", getWorkflowExecutions);
+
+
+router.patch(
+  "/:id/status",
+  restrictTo(Role.ADMIN, Role.SUPERADMIN),
+  updateWorkflowStatus
+);
+
+
 
 export default router;

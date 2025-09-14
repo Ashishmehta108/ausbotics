@@ -6,10 +6,20 @@ import { FeaturesPreview } from "@/components/features-preview"
 import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { useEffect, useState } from "react"
 
 export default function HomePage() {
   const { user, hasWorkflowSubscriptions } = useAuth()
+  const [hassubs, sethassubs] = useState(false)
+  useEffect(() => {
+    const setsubs = async () => {
+      const hassubs = await hasWorkflowSubscriptions()
+      sethassubs(hassubs)
+    }
+    setsubs()
+  }, [
 
+    user])
   return (
     <main className="min-h-screen">
       <Navigation />
@@ -21,12 +31,12 @@ export default function HomePage() {
               <div>
                 <h2 className="text-lg font-semibold text-foreground">Welcome back, {user.fullName || user.email}!</h2>
                 <p className="text-sm text-muted-foreground">
-                  {hasWorkflowSubscriptions()
+                  {hassubs
                     ? "You have active workflow subscriptions. Access your dashboard to manage them."
                     : "You don't have any workflow subscriptions yet. Contact us to get started."}
                 </p>
               </div>
-              {hasWorkflowSubscriptions() && (
+              {hassubs && (
                 <Button asChild className="bg-blue-600 hover:bg-blue-700">
                   <Link href="/dashboard">Go to Dashboard</Link>
                 </Button>

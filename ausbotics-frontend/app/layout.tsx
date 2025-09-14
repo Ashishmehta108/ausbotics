@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { DM_Sans } from "next/font/google"
 import "./globals.css"
 import { AuthProvider } from "@/contexts/auth-context"
+import { ThemeProvider } from "@/components/theme-provider"
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -24,9 +25,11 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={dmSans.variable}>
+    <html suppressHydrationWarning lang="en" className={dmSans.variable}>
       <body className="font-sans antialiased">
-        <AuthProvider>{children}</AuthProvider>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <AuthProvider>{children}</AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

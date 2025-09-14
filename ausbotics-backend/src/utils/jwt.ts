@@ -24,6 +24,7 @@ const signJwt = (
 const verifyJwt = (token: string, secret: string): JwtPayload => {
   try {
     const decoded = jwt.verify(token, secret, { algorithms: ["HS256"] });
+
     return decoded as JwtPayload;
   } catch (err) {
     const error = err as VerifyErrors;
@@ -36,7 +37,7 @@ const verifyJwt = (token: string, secret: string): JwtPayload => {
 
 export const signAccessToken = (
   payload: JwtPayload,
-  expiresIn: StringValue = "15m"
+  expiresIn: StringValue = "1d"
 ): string => {
   return signJwt(payload, ACCESS_SECRET, expiresIn);
 };
@@ -49,6 +50,7 @@ export const signRefreshToken = (
 };
 
 export const verifyAccessToken = (token: string): JwtPayload => {
+
   return verifyJwt(token, ACCESS_SECRET);
 };
 export const verifyRefreshToken = (token: string): JwtPayload => {

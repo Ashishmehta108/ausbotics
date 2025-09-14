@@ -11,8 +11,19 @@ Content-Type: {{contentType}}
   "password": "password123",
   "role": "USER"
 }
+###
+# @name login
 
+POST {{baseUrl}}/api/auth/signup HTTP/1.1
+Content-Type: {{contentType}}
 
+{
+  "email": "newuser@example.com",
+  "password": "password123",
+  "role": "USER"
+} 
+
+###
 # @name login
 POST {{baseUrl}}/api/auth/login HTTP/1.1
 Content-Type: {{contentType}}
@@ -23,7 +34,7 @@ Content-Type: {{contentType}}
   "role":"USER"
 }
 
-
+####
 # @name adminLogin
 POST {{baseUrl}}/api/auth/login HTTP/1.1
 Content-Type: {{contentType}}
@@ -33,7 +44,7 @@ Content-Type: {{contentType}}
   "password": "password123"
 }
 
-
+###
 # @name superadminLogin
 POST {{baseUrl}}/api/auth/login HTTP/1.1
 Content-Type: {{contentType}}
@@ -87,10 +98,10 @@ Authorization: Bearer {{authToken}}
 # Get all users (Admin/Superadmin only)
 GET {{baseUrl}}/api/users
 Authorization: Bearer {{adminToken}}
-
+###
 GET {{baseUrl}}/api/workflows
-Authorization: Bearer {{authToken}}
-
+Authorization: Bearer {{superadminToken}}
+###
 POST {{baseUrl}}/api/workflows
 Content-Type: {{contentType}}
 Authorization: Bearer {{adminToken}}
@@ -100,7 +111,7 @@ Authorization: Bearer {{adminToken}}
   "description": "Workflow description",
   "n8nId": "n8n-workflow-id-123"
 }
-
+###
 GET {{baseUrl}}/api/workflows/1
 Authorization: Bearer {{authToken}}
 
@@ -266,7 +277,7 @@ Authorization: Bearer {{superadminToken}}
 # Get all results
 GET {{baseUrl}}/api/results
 Authorization: Bearer {{authToken}}
-
+###
 # Create a new result (User only)
 POST {{baseUrl}}/api/results
 Authorization: Bearer {{authToken}}
@@ -281,12 +292,12 @@ Content-Type: {{contentType}}
     "callbackBooked": false
   }
 }
-
+###
 # Get result by ID
 @resultId = 1
 GET {{baseUrl}}/api/results/{{resultId}}
 Authorization: Bearer {{authToken}}
-
+###
 # Update result (Superadmin only)
 PUT {{baseUrl}}/api/results/{{resultId}}
 Authorization: Bearer {{superadminToken}}

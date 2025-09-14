@@ -26,7 +26,6 @@ export const bookAppointment = async (
         status: 'Pending',
       },
     });
-
     res.status(201).json({
       status: 'success',
       data: {
@@ -38,7 +37,6 @@ export const bookAppointment = async (
   }
 };
 
-// Get all appointments (admin only)
 export const getAllAppointments = async (
   req: AuthRequest,
   res: Response,
@@ -46,7 +44,7 @@ export const getAllAppointments = async (
 ) => {
   try {
     const { status } = req.query;
-    
+
     const where: any = {};
     if (status) {
       where.status = status as AppointmentStatus;
@@ -71,7 +69,6 @@ export const getAllAppointments = async (
   }
 };
 
-// Get a single appointment
 export const getAppointment = async (
   req: Request,
   res: Response,

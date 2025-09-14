@@ -20,60 +20,55 @@ export const authenticate = async (
 ) => {
   try {
     const authHeader = req.headers.authorization;
-    const refreshToken = req.cookies?.refreshToken;
 
-    if (!authHeader && !refreshToken) {
+    // const refreshToken = req.cookies?.refreshToken;
+    if (!authHeader) {
       return next(new AppError('Please log in to access this route', 401));
     }
 
     const accessToken = authHeader?.split(' ')[1];
-
-    // Try to verify access token first
     if (accessToken) {
       try {
         const decoded = verifyAccessToken(accessToken);
         req.user = { id: decoded.id, role: decoded.role as Role };
         return next();
       } catch (err: any) {
-        // If token is just expired, try to refresh it
         if (err.message !== 'Token has expired') {
           return next(new AppError('Invalid access token', 401));
         }
       }
     }
-
     // If access token is expired or not provided, try to refresh it
-    if (refreshToken) {
-      try {
-        const decoded = verifyRefreshToken(refreshToken);
-        
-        // Find user and verify refresh token
-        const user = await prisma.user.findUnique({
-          where: { id: decoded.id },
-          select: { id: true, role: true, refreshToken: true },
-        });
+    // if (refreshToken) {
+    //   try {
+    //     const decoded = verifyRefreshToken(refreshToken);
 
-        if (!user || user.refreshToken !== refreshToken) {
-          return next(new AppError('Invalid refresh token', 401));
-        }
+    //     // Find user and verify refresh token
+    //     const user = await prisma.user.findUnique({
+    //       where: { id: decoded.id },
+    //       select: { id: true, role: true, refreshToken: true },
+    //     });
 
-        // Generate new access token
-        const newAccessToken = signAccessToken({ 
-          id: user.id, 
-          role: user.role 
-        });
+    //     if (!user || user.refreshToken !== refreshToken) {
+    //       return next(new AppError('Invalid refresh token', 401));
+    //     }
 
-        // Set new access token in response header
-        res.setHeader('x-access-token', newAccessToken);
-        
-        // Attach user to request object
-        req.user = { id: user.id, role: user.role };
-        
-        return next();
-      } catch (err: any) {
-        return next(new AppError('Invalid or expired refresh token', 401));
-      }
-    }
+    //     // Generate new access token
+    //     const newAccessToken = signAccessToken({ 
+    //       id: user.id, 
+    //       role: user.role 
+    //     });
+
+    //     res.cookie("accessToken",newAccessToken)
+    //     res.setHeader('x-access-token', newAccessToken);
+
+    //     req.user = { id: user.id, role: user.role };
+
+    //     return next();
+    //   } catch (err: any) {
+    //     return next(new AppError('Invalid or expired refresh token', 401));
+    //   }
+    // }
 
     return next(new AppError('Not authorized to access this route', 401));
   } catch (error: any) {

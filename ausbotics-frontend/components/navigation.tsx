@@ -56,6 +56,9 @@ export function Navigation() {
                     <Button asChild>
                       <Link href="/demo">See Demo</Link>
                     </Button>
+                    <Button asChild>
+                      <Link href="/book">Book Schedule</Link>
+                    </Button>
                     {showDashboard && (
                       <Button asChild className="bg-blue-600 hover:bg-blue-700">
                         <Link href="/dashboard">Dashboard</Link>
@@ -74,6 +77,10 @@ export function Navigation() {
                     <Button asChild>
                       <Link href="/demo">See Demo</Link>
                     </Button>
+                    <Button asChild>
+                      <Link href="/book">Book Schedule</Link>
+                    </Button>
+                    
                   </>
                 )}
               </>

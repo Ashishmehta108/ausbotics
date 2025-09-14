@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -27,84 +27,18 @@ interface WorkflowDetailModalProps {
   onClose: () => void
 }
 
-// Mock n8n workflow output data
-const generateMockOutput = (workflowName: string) => {
-  const baseData = {
-    executionId: `exec_${Math.random().toString(36).substr(2, 9)}`,
-    startTime: new Date(Date.now() - Math.random() * 3600000).toISOString(),
-    endTime: new Date().toISOString(),
-    status: "success",
-    totalCalls: Math.floor(Math.random() * 50) + 10,
-    successfulCalls: Math.floor(Math.random() * 40) + 8,
-    failedCalls: Math.floor(Math.random() * 5) + 1,
-  }
-
-  const mockOutputs = {
-    "Lead Generation Calls": {
-      ...baseData,
-      leads: [
-        { name: "John Smith", phone: "+1-555-0123", status: "Interested", score: 8.5 },
-        { name: "Sarah Johnson", phone: "+1-555-0124", status: "Callback Requested", score: 7.2 },
-        { name: "Mike Davis", phone: "+1-555-0125", status: "Not Interested", score: 2.1 },
-        { name: "Emily Brown", phone: "+1-555-0126", status: "Qualified", score: 9.1 },
-      ],
-      summary: {
-        qualifiedLeads: 2,
-        callbacksScheduled: 1,
-        averageCallDuration: "3m 24s",
-        conversionRate: "32%",
-      },
-    },
-    "Customer Support Automation": {
-      ...baseData,
-      tickets: [
-        { id: "TK-001", issue: "Billing Question", resolution: "Resolved", duration: "2m 15s" },
-        { id: "TK-002", issue: "Technical Support", resolution: "Escalated", duration: "5m 42s" },
-        { id: "TK-003", issue: "Account Access", resolution: "Resolved", duration: "1m 33s" },
-      ],
-      summary: {
-        resolvedTickets: 2,
-        escalatedTickets: 1,
-        averageResolutionTime: "3m 10s",
-        customerSatisfaction: "4.2/5",
-      },
-    },
-    "Appointment Scheduling": {
-      ...baseData,
-      appointments: [
-        { name: "Alex Wilson", date: "2024-01-20", time: "10:00 AM", status: "Confirmed" },
-        { name: "Lisa Chen", date: "2024-01-20", time: "2:30 PM", status: "Confirmed" },
-        { name: "Robert Taylor", date: "2024-01-21", time: "9:15 AM", status: "Pending" },
-      ],
-      summary: {
-        scheduledAppointments: 3,
-        confirmedAppointments: 2,
-        pendingConfirmation: 1,
-        bookingRate: "78%",
-      },
-    },
-  }
-
-  return (
-    mockOutputs[workflowName as keyof typeof mockOutputs] || {
-      ...baseData,
-      data: { message: "Workflow execution completed successfully", processed: baseData.totalCalls },
-      summary: {
-        totalProcessed: baseData.totalCalls,
-        successRate: "85%",
-        averageDuration: "2m 45s",
-      },
-    }
-  )
-}
-
 export function WorkflowDetailModal({ workflow, isOpen, onClose }: WorkflowDetailModalProps) {
   const [activeTab, setActiveTab] = useState("overview")
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [executions, setExecutions] = useState<any[]>([])
+  const [latestExecution, setLatestExecution] = useState<any | null>(null)
+  useEffect(() => {
+    if (isOpen && workflow?.id) {
+      fetchExecutions()
+    }
+  }, [isOpen, workflow?.id])
 
   if (!workflow) return null
-
-  const mockOutput = generateMockOutput(workflow.name)
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -121,9 +55,24 @@ export function WorkflowDetailModal({ workflow, isOpen, onClose }: WorkflowDetai
     }
   }
 
-  const handleRefresh = () => {
+  const fetchExecutions = async () => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/workflows/${workflow.id}/executions`, {
+        credentials: "include",
+      })
+      const data = await res.json()
+      setExecutions(data || [])
+      setLatestExecution(data?.[0] || null)
+    } catch (err) {
+      console.error("Failed to fetch executions", err)
+    }
+  }
+
+
+  const handleRefresh = async () => {
     setIsRefreshing(true)
-    setTimeout(() => setIsRefreshing(false), 2000)
+    await fetchExecutions()
+    setTimeout(() => setIsRefreshing(false), 1000)
   }
 
   return (
@@ -154,9 +103,9 @@ export function WorkflowDetailModal({ workflow, isOpen, onClose }: WorkflowDetai
                 <CardContent className="space-y-4">
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium">Progress</span>
-                    <span className="text-sm">{workflow.progress}%</span>
+                    <span className="text-sm">{workflow.progress ?? 0}%</span>
                   </div>
-                  <Progress value={workflow.progress} className="h-2" />
+                  <Progress value={workflow.progress ?? 0} className="h-2" />
 
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
@@ -165,11 +114,17 @@ export function WorkflowDetailModal({ workflow, isOpen, onClose }: WorkflowDetai
                     </div>
                     <div className="flex justify-between">
                       <span>Last Run:</span>
-                      <span>{new Date(mockOutput.endTime).toLocaleString()}</span>
+                      <span>
+                        {latestExecution?.execution?.endTime
+                          ? new Date(latestExecution.execution.endTime).toLocaleString()
+                          : "—"}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span>Execution ID:</span>
-                      <span className="font-mono text-xs">{mockOutput.executionId}</span>
+                      <span className="font-mono text-xs">
+                        {latestExecution?.execution?.id || "—"}
+                      </span>
                     </div>
                   </div>
                 </CardContent>
@@ -182,17 +137,23 @@ export function WorkflowDetailModal({ workflow, isOpen, onClose }: WorkflowDetai
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-green-600">{mockOutput.successfulCalls}</div>
-                      <div className="text-xs text-muted-foreground">Successful</div>
+                      <div className="text-2xl font-bold text-green-600">
+                        {latestExecution?.execution?.leads?.length || 0}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Leads</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-red-600">{mockOutput.failedCalls}</div>
-                      <div className="text-xs text-muted-foreground">Failed</div>
+                      <div className="text-2xl font-bold text-blue-600">
+                        {latestExecution?.execution?.tickets?.length || 0}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Tickets</div>
                     </div>
                   </div>
                   <div className="text-center pt-2">
-                    <div className="text-lg font-semibold">{mockOutput.totalCalls}</div>
-                    <div className="text-xs text-muted-foreground">Total Executions</div>
+                    <div className="text-lg font-semibold">
+                      {executions.length}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Total Runs</div>
                   </div>
                 </CardContent>
               </Card>
@@ -209,121 +170,64 @@ export function WorkflowDetailModal({ workflow, isOpen, onClose }: WorkflowDetai
             </div>
 
             <ScrollArea className="h-96 w-full border rounded-lg p-4">
-              <div className="space-y-4">
-                {/* Execution Summary */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm flex items-center space-x-2">
-                      <Activity className="h-4 w-4" />
-                      <span>Execution Summary</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <pre className="text-xs bg-muted p-3 rounded overflow-x-auto">
-                      {JSON.stringify(
-                        {
-                          executionId: mockOutput.executionId,
-                          status: mockOutput.status,
-                          startTime: mockOutput.startTime,
-                          endTime: mockOutput.endTime,
-                          summary: mockOutput.summary,
-                        },
-                        null,
-                        2,
-                      )}
-                    </pre>
-                  </CardContent>
-                </Card>
+              {latestExecution ? (
+                <div className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-sm flex items-center space-x-2">
+                        <Activity className="h-4 w-4" />
+                        <span>Execution Summary</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <pre className="text-xs bg-muted p-3 rounded overflow-x-auto">
+                        {JSON.stringify(
+                          {
+                            id: latestExecution.execution.id,
+                            status: latestExecution.execution.status,
+                            startTime: latestExecution.execution.startTime,
+                            endTime: latestExecution.execution.endTime,
+                            summary: latestExecution.execution.summary,
+                          },
+                          null,
+                          2
+                        )}
+                      </pre>
+                    </CardContent>
+                  </Card>
 
-                {/* Detailed Output */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm flex items-center space-x-2">
-                      <BarChart3 className="h-4 w-4" />
-                      <span>Detailed Results</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <pre className="text-xs bg-muted p-3 rounded overflow-x-auto max-h-64 overflow-y-auto">
-                      {JSON.stringify(mockOutput, null, 2)}
-                    </pre>
-                  </CardContent>
-                </Card>
-              </div>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-sm flex items-center space-x-2">
+                        <BarChart3 className="h-4 w-4" />
+                        <span>Detailed Results</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <pre className="text-xs bg-muted p-3 rounded overflow-x-auto max-h-64 overflow-y-auto">
+                        {JSON.stringify(latestExecution, null, 2)}
+                      </pre>
+                    </CardContent>
+                  </Card>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No executions found</p>
+              )}
             </ScrollArea>
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm flex items-center space-x-2">
-                    <Phone className="h-4 w-4" />
-                    <span>Call Analytics</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span>Success Rate:</span>
-                    <span className="font-semibold text-green-600">
-                      {Math.round((mockOutput.successfulCalls / mockOutput.totalCalls) * 100)}%
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Average Duration:</span>
-                    <span className="font-semibold">{mockOutput.summary?.averageCallDuration || "2m 45s"}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Total Runtime:</span>
-                    <span className="font-semibold">
-                      {Math.round(
-                        (new Date(mockOutput.endTime).getTime() - new Date(mockOutput.startTime).getTime()) / 60000,
-                      )}
-                      m
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm flex items-center space-x-2">
-                    <MessageSquare className="h-4 w-4" />
-                    <span>Workflow Insights</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span>Conversion Rate:</span>
-                    <span className="font-semibold text-blue-600">{mockOutput.summary?.conversionRate || "85%"}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Quality Score:</span>
-                    <span className="font-semibold">{mockOutput.summary?.customerSatisfaction || "4.2/5"}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Efficiency:</span>
-                    <span className="font-semibold text-green-600">High</span>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">Export Options</CardTitle>
+                <CardTitle className="text-sm flex items-center space-x-2">
+                  <MessageSquare className="h-4 w-4" />
+                  <span>Insights</span>
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex space-x-2">
-                  <Button variant="outline" size="sm">
-                    <Download className="h-4 w-4 mr-2" />
-                    Export CSV
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <Download className="h-4 w-4 mr-2" />
-                    Export JSON
-                  </Button>
-                </div>
+                <pre className="text-xs bg-muted p-3 rounded overflow-x-auto">
+                  {JSON.stringify(latestExecution?.execution?.summary || {}, null, 2)}
+                </pre>
               </CardContent>
             </Card>
           </TabsContent>

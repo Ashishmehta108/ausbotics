@@ -1,332 +1,242 @@
-"use client"
+"use client";
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  type ReactNode,
+} from "react";
+import {
+  authApi,
+  workflowApi,
+  appointmentApi,
+  userApi,
+  fetchApi,
+} from "@/lib/api";
+import {
+  AppointmentDto,
+  Role,
+  UserDto,
+  WorkflowDto,
+  WorkflowStatus,
+} from "@/lib/types";
 
-interface User {
-  id: string
-  email: string
-  fullName?: string
-  role: "user" | "admin" | "superAdmin"
-}
-
-interface Workflow {
-  id: string
-  name: string
-  description: string
-  status: "Active" | "Paused" | "Done" | "New"
-  assignedUsers: string[]
-  createdAt: string
-  progress: number
-}
-
-interface Appointment {
-  id: string
-  name: string
-  email: string
-  preferredDate: string
-  preferredTime: string
-  purpose: string
-  status: "Pending" | "Confirmed" | "Cancelled"
-  createdAt: string
-}
-
+// ---------- Context Type ----------
 interface AuthContextType {
-  user: User | null
-  isLoading: boolean
-  signIn: (email: string, password: string) => Promise<boolean>
-  signUp: (email: string, password: string, fullName?: string) => Promise<boolean>
-  signOut: () => void
-  promoteUser: (userId: string, newRole: "user" | "admin" | "superAdmin") => boolean
-  getUserWorkflows: () => Workflow[]
-  getAllWorkflows: () => Workflow[]
-  getAllAppointments: () => Appointment[]
-  bookAppointment: (appointment: Omit<Appointment, "id" | "status" | "createdAt">) => boolean
-  hasWorkflowSubscriptions: () => boolean
+  user: UserDto | null;
+  isLoading: boolean;
+  signIn: (email: string, password: string) => Promise<boolean>;
+  signUp: (
+    email: string,
+    password: string,
+    fullName?: string
+  ) => Promise<boolean>;
+  signOut: () => Promise<void>;
+  promoteUser: (userId: string, newRole: Role) => Promise<boolean>;
+  getUserWorkflows: () => Promise<WorkflowDto[]>;
+  getAllWorkflows: () => Promise<WorkflowDto[]>;
+  getAllAppointments: () => Promise<{
+    data: {
+      appointments: AppointmentDto[];
+    };
+  }>;
+  bookAppointment: (
+    appointment: Omit<AppointmentDto, "id" | "status" | "createdAt">
+  ) => Promise<boolean>;
+  hasWorkflowSubscriptions: () => Promise<boolean>;
+  refreshUser: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const DEMO_USERS = [
-  {
-    id: "demo_user",
-    email: "demo_user@example.com",
-    password: "password",
-    fullName: "Demo User",
-    role: "user" as const,
-  },
-  {
-    id: "demo_admin",
-    email: "demo_admin@example.com",
-    password: "password",
-    fullName: "Demo Admin",
-    role: "admin" as const,
-  },
-  {
-    id: "demo_super",
-    email: "demo_super@example.com",
-    password: "password",
-    fullName: "Demo Super Admin",
-    role: "superAdmin" as const,
-  },
-]
+// ---------- Helpers ----------
+function parseUser(user: any): UserDto {
+  return {
+    id: user.id,
+    email: user.email,
+    fullName: user.fullName ?? undefined,
+    role: user.role as Role,
+    refreshToken: user.refreshToken,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+    workflows: user.workflows ?? [],
+    workflowExecutions: user.workflowExecutions ?? [],
+  };
+}
 
-const DEMO_WORKFLOWS: Workflow[] = [
-  {
-    id: "wf_1",
-    name: "Customer Onboarding Calls",
-    description: "Automated welcome calls for new customers",
-    status: "Active",
-    assignedUsers: ["demo_user", "demo_admin"],
-    createdAt: "2024-01-15",
-    progress: 75,
-  },
-  {
-    id: "wf_2",
-    name: "Lead Qualification Campaign",
-    description: "AI-powered lead scoring and qualification calls",
-    status: "Active",
-    assignedUsers: ["demo_admin"],
-    createdAt: "2024-01-20",
-    progress: 60,
-  },
-  {
-    id: "wf_3",
-    name: "Customer Satisfaction Survey",
-    description: "Post-service satisfaction and feedback collection",
-    status: "Paused",
-    assignedUsers: ["demo_user"],
-    createdAt: "2024-01-10",
-    progress: 40,
-  },
-  {
-    id: "wf_4",
-    name: "Appointment Reminder System",
-    description: "Automated appointment confirmations and reminders",
-    status: "Done",
-    assignedUsers: ["demo_admin", "demo_super"],
-    createdAt: "2024-01-05",
-    progress: 100,
-  },
-  {
-    id: "wf_5",
-    name: "Sales Follow-up Sequence",
-    description: "Automated follow-up calls for sales prospects",
-    status: "New",
-    assignedUsers: [],
-    createdAt: "2024-01-25",
-    progress: 0,
-  },
-]
+async function loginUser(
+  email: string,
+  password: string
+): Promise<UserDto | null> {
+  const response = await authApi.login({ email, password });
+  return response.data?.user ? parseUser(response.data.user) : null;
+}
 
-const DEMO_APPOINTMENTS: Appointment[] = [
-  {
-    id: "apt_1",
-    name: "John Smith",
-    email: "john.smith@example.com",
-    preferredDate: "2024-02-15",
-    preferredTime: "10:00 AM",
-    purpose: "Product Demo",
-    status: "Confirmed",
-    createdAt: "2024-01-28",
-  },
-  {
-    id: "apt_2",
-    name: "Sarah Johnson",
-    email: "sarah.j@company.com",
-    preferredDate: "2024-02-16",
-    preferredTime: "2:00 PM",
-    purpose: "Consultation",
-    status: "Pending",
-    createdAt: "2024-01-29",
-  },
-  {
-    id: "apt_3",
-    name: "Mike Davis",
-    email: "mike.davis@startup.io",
-    preferredDate: "2024-02-14",
-    preferredTime: "11:30 AM",
-    purpose: "Integration Discussion",
-    status: "Confirmed",
-    createdAt: "2024-01-27",
-  },
-]
+async function signupUser(
+  email: string,
+  password: string,
+  fullName?: string
+): Promise<UserDto | null> {
+  const response = await authApi.signup({ email, password, fullName });
+  return response.data?.user ? parseUser(response.data.user) : null;
+}
 
+async function fetchCurrentUser(): Promise<UserDto | null> {
+  const response = await authApi.getCurrentUser();
+  return response.data ? parseUser(response.data) : null;
+}
+
+// ---------- Provider ----------
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [user, setUser] = useState<UserDto | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
-      setIsLoading(false)
-      return
-    }
-
-    const storedUsers = localStorage.getItem("auth_users")
-    if (!storedUsers) {
-      localStorage.setItem("auth_users", JSON.stringify(DEMO_USERS))
-    } else {
-      // Merge demo users with existing users to ensure they're always available
-      const existingUsers = JSON.parse(storedUsers)
-      const mergedUsers = [...DEMO_USERS]
-
-      existingUsers.forEach((existingUser: any) => {
-        if (!DEMO_USERS.find((demo) => demo.email === existingUser.email)) {
-          mergedUsers.push(existingUser)
-        }
-      })
-      console.log(existingUsers)
-
-      localStorage.setItem("auth_users", JSON.stringify(mergedUsers))
-    }
-
-    const storedWorkflows = localStorage.getItem("demo_workflows")
-    if (!storedWorkflows) {
-      localStorage.setItem("demo_workflows", JSON.stringify(DEMO_WORKFLOWS))
-    }
-
-    const storedAppointments = localStorage.getItem("demo_appointments")
-    if (!storedAppointments) {
-      localStorage.setItem("demo_appointments", JSON.stringify(DEMO_APPOINTMENTS))
-    }
-
-    const storedUser = localStorage.getItem("auth_user")
+    const storedUser = localStorage.getItem("user");
     if (storedUser) {
       try {
-        setUser(JSON.parse(storedUser))
-      } catch (error) {
-        console.error("Failed to parse stored user:", error)
-        localStorage.removeItem("auth_user")
+        const parsed: UserDto = JSON.parse(storedUser);
+        setUser(parsed);
+      } catch {
+        console.error("Failed to parse stored user, clearing it");
+        localStorage.removeItem("user");
       }
     }
-    setIsLoading(false)
-  }, [])
+    setIsLoading(false);
+  }, []);
 
-  const getUserWorkflows = (): Workflow[] => {
-    if (!user || typeof window === "undefined") return []
-
-    const storedWorkflows = localStorage.getItem("demo_workflows")
-    if (!storedWorkflows) return []
-
-    const workflows: Workflow[] = JSON.parse(storedWorkflows)
-    return workflows.filter((workflow) => workflow.assignedUsers.includes(user.id))
-  }
-
-  const getAllWorkflows = (): Workflow[] => {
-    if (typeof window === "undefined") return []
-
-    const storedWorkflows = localStorage.getItem("demo_workflows")
-    if (!storedWorkflows) return []
-
-    return JSON.parse(storedWorkflows)
-  }
-
-  const getAllAppointments = (): Appointment[] => {
-    if (typeof window === "undefined") return []
-
-    const storedAppointments = localStorage.getItem("demo_appointments")
-    if (!storedAppointments) return []
-
-    return JSON.parse(storedAppointments)
-  }
-
-  const bookAppointment = (appointmentData: Omit<Appointment, "id" | "status" | "createdAt">): boolean => {
-    if (typeof window === "undefined") return false
-
-    const storedAppointments = localStorage.getItem("demo_appointments")
-    const appointments = storedAppointments ? JSON.parse(storedAppointments) : []
-
-    const newAppointment: Appointment = {
-      ...appointmentData,
-      id: `apt_${Date.now()}`,
-      status: "Pending",
-      createdAt: new Date().toISOString().split("T")[0],
+  const refreshUser = async (): Promise<void> => {
+    try {
+      const userData = await fetchCurrentUser();
+      if (userData) {
+        setUser(userData);
+        localStorage.setItem("user", JSON.stringify(userData));
+      }
+    } catch (error) {
+      console.error("Failed to refresh user:", error);
+      setUser(null);
+      localStorage.removeItem("user");
     }
-
-    appointments.push(newAppointment)
-    localStorage.setItem("demo_appointments", JSON.stringify(appointments))
-    return true
-  }
-
-  const hasWorkflowSubscriptions = (): boolean => {
-    return getUserWorkflows().length > 0
-  }
+  };
 
   const signIn = async (email: string, password: string): Promise<boolean> => {
-    if (typeof window === "undefined") return false
-
-    const storedUsers = localStorage.getItem("auth_users")
-    const users = storedUsers ? JSON.parse(storedUsers) : []
-
-    const foundUser = users.find((u: any) => u.email === email && u.password === password)
-
-    if (foundUser) {
-      const userData = {
-        id: foundUser.id,
-        email: foundUser.email,
-        fullName: foundUser.fullName,
-        role: foundUser.role || "user", // Default to 'user' role if not specified
+    try {
+      const userData = await loginUser(email, password);
+      if (userData) {
+        setUser(userData);
+        localStorage.setItem("user", JSON.stringify(userData));
+        return true;
       }
-      setUser(userData)
-      localStorage.setItem("auth_user", JSON.stringify(userData))
-      return true
+      return false;
+    } catch (error) {
+      console.error("Login failed:", error);
+      return false;
+    }
+  };
+
+  const signUp = async (
+    email: string,
+    password: string,
+    fullName?: string
+  ): Promise<boolean> => {
+    try {
+      const userData = await signupUser(email, password, fullName);
+      if (userData) {
+        setUser(userData);
+        localStorage.setItem("user", JSON.stringify(userData));
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Signup failed:", error);
+      return false;
+    }
+  };
+
+  const signOut = async (): Promise<void> => {
+    try {
+      await authApi.logout();
+    } catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      setUser(null);
+      localStorage.removeItem("user");
+    }
+  };
+
+  const promoteUser = async (
+    userId: string,
+    newRole: Role
+  ): Promise<boolean> => {
+    try {
+      // if (user && user.id === userId) {
+      //@ts-ignore
+      const updatedUser: UserDto = { ...user, role: newRole };
+      console.log(userId);
+      const token = localStorage.getItem("accessToken");
+      const isSuccess = await fetch(
+        `http://localhost:5000/api/users/${userId}/role`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ role: newRole }),
+          credentials: "include",
+        }
+      );
+
+      console.log(await isSuccess.json());
+      // setUser(updatedUser);
+      // localStorage.setItem("user", JSON.stringify(updatedUser));
+      return true;
+      // }
+      // return false;.
+    } catch (error) {
+      console.error("Failed to promote user:", error);
+      return false;
+    }
+  };
+
+  // ---------- Workflows ----------
+  const getUserWorkflows = async (): Promise<WorkflowDto[]> => {
+    const response = await workflowApi.getAll();
+    return response ?? [];
+  };
+
+  const getAllWorkflows = async (): Promise<WorkflowDto[]> => {
+    const response = await workflowApi.getAll();
+
+    return response ?? [];
+  };
+
+  const getAllAppointments = async (): Promise<{
+    data: {
+      appointments: AppointmentDto[];
+    };
+  }> => {
+    const response = await appointmentApi.getAll();
+
+    if (!response.data) {
+      return { data: { appointments: [] } };
     }
 
-    return false
-  }
+    return response.data;
+  };
 
-  const signUp = async (email: string, password: string, fullName?: string): Promise<boolean> => {
-    if (typeof window === "undefined") return false
+  const bookAppointment = async (
+    appointment: Omit<AppointmentDto, "id" | "status" | "createdAt">
+  ): Promise<boolean> => {
+    const response = await appointmentApi.book(appointment);
+    return !!response.data;
+  };
 
-    const storedUsers = localStorage.getItem("auth_users")
-    const users = storedUsers ? JSON.parse(storedUsers) : []
-
-    if (users.find((u: any) => u.email === email)) {
-      return false // User already exists
-    }
-
-    const newUser = {
-      id: Date.now().toString(),
-      email,
-      password,
-      fullName,
-      role: "user" as const,
-    }
-
-    users.push(newUser)
-    localStorage.setItem("auth_users", JSON.stringify(users))
-
-    return true
-  }
-
-  const promoteUser = (userId: string, newRole: "user" | "admin" | "superAdmin"): boolean => {
-    if (typeof window === "undefined") return false
-
-    const storedUsers = localStorage.getItem("auth_users")
-    if (!storedUsers) return false
-
-    const users = JSON.parse(storedUsers)
-    const userIndex = users.findIndex((u: any) => u.id === userId)
-
-    if (userIndex === -1) return false
-
-    users[userIndex].role = newRole
-    localStorage.setItem("auth_users", JSON.stringify(users))
-
-    if (user && user.id === userId) {
-      const updatedUser = { ...user, role: newRole }
-      setUser(updatedUser)
-      localStorage.setItem("auth_user", JSON.stringify(updatedUser))
-    }
-
-    return true
-  }
-
-  const signOut = (): void => {
-    setUser(null)
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("auth_user")
-    }
-  }
+  const hasWorkflowSubscriptions = async (): Promise<boolean> => {
+    const workflows = await getUserWorkflows();
+    return workflows.length > 0;
+  };
 
   return (
     <AuthContext.Provider
@@ -342,19 +252,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         getAllAppointments,
         bookAppointment,
         hasWorkflowSubscriptions,
+        refreshUser,
       }}
     >
       {children}
     </AuthContext.Provider>
-  )
+  );
 }
 
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider")
+// ---------- Hook ----------
+export function useAuth(): AuthContextType {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
   }
-  return context
+  return context;
 }
-
-export type { User, Workflow, Appointment }

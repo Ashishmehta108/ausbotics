@@ -2,8 +2,6 @@ import { Request, Response, NextFunction } from "express";
 import { prisma } from "../models/client";
 import { AppError } from "../middlewares/error.middleware";
 import { AuthRequest } from "../middlewares/auth.middleware";
-import { fetchSheetData } from "../utils/sheets.api";
-import { syncResultsFromSheet } from "../utils/syncResults";
 
 export const createWorkflowExecution = async (
   req: AuthRequest,
@@ -11,34 +9,40 @@ export const createWorkflowExecution = async (
   next: NextFunction
 ) => {
   try {
-    const { workflowId, data } = req.body;
-    if (!workflowId || !data)
-      return next(new AppError("workflowId and data are required", 400));
+    const { workflowId, data, summary, leads, tickets, appointments } = req.body;
+    if (!workflowId) return next(new AppError("workflowId is required", 400));
 
-    const workflow = await prisma.workflow.findUnique({
-      where: { id: workflowId },
-    });
+    const workflow = await prisma.workflow.findUnique({ where: { id: workflowId } });
     if (!workflow) return next(new AppError("Workflow not found", 404));
 
-    const result = await prisma.workflowExecution.create({
+    const execution = await prisma.execution.create({
       data: {
         workflowId,
-        userId: req.user!.id,
-        data: JSON.stringify(data),
-        agentMessages: JSON.stringify(data.agentMessages || []),
-        callbackBooked: data.callbackBooked || false,
-        leadName: data.leadName,
-        leadPhone: data.leadPhone,
-        leadEmail: data.leadEmail,
-        progress: 0,
+        status: "None",
+        startTime: new Date(),
+        leads,
+        tickets,
+        appointments,
+        summary,
       },
     });
 
-    syncResultsFromSheet(workflow.id, req.user!.id!).catch((sheetErr) =>
-      console.error("Failed to sync to Google Sheets:", sheetErr.message)
-    );
+    const workflowExecution = await prisma.workflowExecution.create({
+      data: {
+        workflowId: workflow.id,
+        executionId: execution.id,
+        userId: req.user!.id,
+        data: data ? JSON.stringify(data) : null,
+        agentMessages: data?.agentMessages ? JSON.stringify(data.agentMessages) : null,
+        callbackBooked: data?.callbackBooked ?? false,
+        leadName: data?.leadName ?? null,
+        leadPhone: data?.leadPhone ?? null,
+        leadEmail: data?.leadEmail ?? null,
+      },
+      include: { execution: true },
+    });
 
-    res.status(201).json(result);
+    res.status(201).json(workflowExecution);
   } catch (err: any) {
     next(new AppError(err.message, 500));
   }
@@ -50,17 +54,16 @@ export const getWorkflowExecutions = async (
   next: NextFunction
 ) => {
   try {
-    const userRole = req.user!.role;
-    let results;
+    const where = req.user!.role === "USER" ? { userId: req.user!.id } : {};
 
-    if (userRole === "USER") {
-      results = await prisma.workflowExecution.findMany({
-        where: { userId: req.user!.id },
-      });
-    } else {
-      results = await prisma.workflowExecution.findMany();
-    }
+    const results = await prisma.workflowExecution.findMany({
+      where,
+      include: {
+        execution: true,
 
+      },
+    });
+console.log(results)
     res.json(results);
   } catch (err: any) {
     next(new AppError(err.message, 500));
@@ -74,9 +77,12 @@ export const getWorkflowExecutionById = async (
 ) => {
   try {
     const { id } = req.params;
-    const result = await prisma.workflowExecution.findUnique({ where: { id } });
-    if (!result) return next(new AppError("Result not found", 404));
+    const result = await prisma.workflowExecution.findUnique({
+      where: { id },
+      include: { execution: true },
+    });
 
+    if (!result) return next(new AppError("Result not found", 404));
     if (req.user!.role === "USER" && result.userId !== req.user!.id)
       return next(new AppError("Forbidden", 403));
 
@@ -93,33 +99,34 @@ export const updateWorkflowExecution = async (
 ) => {
   try {
     const { id } = req.params;
-    const {
-      data,
-      progress,
-      agentMessages,
-      callbackBooked,
-      leadName,
-      leadPhone,
-      leadEmail,
-    } = req.body;
+    const { data, summary, leads, tickets, appointments } = req.body;
 
-    const result = await prisma.workflowExecution.update({
+    const workflowExecution = await prisma.workflowExecution.findUnique({
       where: { id },
+    });
+    if (!workflowExecution) return next(new AppError("Execution not found", 404));
+
+    await prisma.execution.update({
+      where: { id: workflowExecution.executionId },
       data: {
-        data: data ? JSON.stringify(data) : undefined,
-        agentMessages: agentMessages
-          ? JSON.stringify(agentMessages)
-          : undefined,
-        callbackBooked,
-        leadName,
-        leadPhone,
-        leadEmail,
-        progress,
+        summary,
+        leads,
+        tickets,
+        appointments,
       },
     });
 
-    res.json(result);
+    const updated = await prisma.workflowExecution.update({
+      where: { id },
+      data: {
+        data: data ? JSON.stringify(data) : undefined,
+      },
+      include: { execution: true },
+    });
+
+    res.json(updated);
   } catch (err: any) {
     next(new AppError(err.message, 500));
   }
 };
+

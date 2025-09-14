@@ -4,73 +4,87 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 async function main() {
-  const passwordHash = await bcrypt.hash("password123", 10);
+  console.log("🔹 Starting seed script...");
 
+  const passwordHash = await bcrypt.hash("password123", 10);
+  console.log("✅ Password hashed");
+
+  console.log("👉 Upserting users...");
   const users = [
     { email: "superadmin@example.com", role: "SUPERADMIN" },
     { email: "admin@example.com", role: "ADMIN" },
     { email: "user@example.com", role: "USER" },
-  ];  
+  ];
 
-  for (const u of users) {
-    await prisma.user.upsert({
-      where: { email: u.email },
+  for (const user of users) {
+    const upsertedUser = await prisma.user.upsert({
+      where: { email: user.email },
       update: {},
-      create: { email: u.email, password: passwordHash, role: u.role },
+      create: {
+        email: user.email,
+        password: passwordHash,
+        role: user.role,
+      },
     });
+    console.log(`✅ Upserted user: ${upsertedUser.email}`);
   }
 
+  console.log("👉 Upserting workflows...");
   const workflows = [
-    { name: "Sample Workflow 1", description: "This is the first sample workflow", n8nId: "n8n_workflow_1" },
-    { name: "Sample Workflow 2", description: "This is the second sample workflow", n8nId: "n8n_workflow_2" },
+    {
+      name: "Sample Workflow 1",
+      description: "This is the first sample workflow",
+      status: "New",
+      progress: 0,
+    },
+    {
+      name: "Sample Workflow 2",
+      description: "This is the second sample workflow",
+      status: "New",
+      progress: 0,
+    },
   ];
 
-  for (const w of workflows) {
-    await prisma.workflow.upsert({
-      where: { name: w.name },
+  for (const workflow of workflows) {
+    const upsertedWorkflow = await prisma.workflow.upsert({
+      where: { name: workflow.name },
       update: {},
-      create: w,
-    });
-  }
-
-  const user = await prisma.user.findUnique({ where: { email: "user@example.com" } });
-  const workflow1 = await prisma.workflow.findUnique({ where: { name: "Sample Workflow 1" } });
-  const workflow2 = await prisma.workflow.findUnique({ where: { name: "Sample Workflow 2" } });
-
-  const results = [
-    {
-      workflowId: workflow1.id,
-      userId: user.id,
-      data: { lead: "John Doe", status: "new", agentMessages: ["Hello!"], callbackBooked: false },
-    },
-    {
-      workflowId: workflow2.id,
-      userId: user.id,
-      data: { lead: "Jane Doe", status: "contacted", agentMessages: ["Hi!"], callbackBooked: true },
-    },
-  ];
-
-  for (const r of results) {
-    const exists = await prisma.result.findFirst({
-      where: { workflowId: r.workflowId, userId: r.userId },
-    });
-    if (!exists) {
-      await prisma.result.create({
-        data: {
-          workflowId: r.workflowId,
-          userId: r.userId,
-          data: JSON.stringify(r.data),
-          agentMessages: JSON.stringify(r.data.agentMessages),
-          callbackBooked: r.data.callbackBooked,
-          leadName: r.data.lead,
+      create: {
+        name: workflow.name,
+        description: workflow.description,
+        status: workflow.status,
+        progress: workflow.progress,
+        subscribedUser: {
+          connect: { email: "user@example.com" },
         },
-      });
-    }
+      },
+    });
+    console.log(`✅ Upserted workflow: ${upsertedWorkflow.name}`);
   }
 
-  console.log("Seed data checked/created successfully");
+  console.log("👉 Upserting execution results...");
+  const executionResult = await prisma.executionResult.upsert({
+    where: { id: "result-1" },
+    update: {},
+    create: {
+      id: "result-1",
+      workflow: {
+        connect: { name: "Sample Workflow 1" },
+      },
+      status: "None",
+      totalCalls: 0,
+    },
+  });
+  console.log(`✅ Upserted execution result: ${executionResult.id}`);
 }
 
 main()
-  .catch((e) => console.error(e))
-  .finally(() => prisma.$disconnect());
+  .then(async () => {
+    console.log("🎉 Seeding completed successfully!");
+    await prisma.$disconnect();
+  })
+  .catch(async (e) => {
+    console.error("❌ Seeding failed:", e);
+    await prisma.$disconnect();
+    process.exit(1);
+  });

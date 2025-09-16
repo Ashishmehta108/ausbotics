@@ -10,7 +10,8 @@ export const bookAppointment = async (
   next: NextFunction
 ) => {
   try {
-    const { name, email, preferredDate, preferredTime, purpose } = req.body;
+    const { name, email, preferredDate, preferredTime, purpose, description } =
+      req.body;
     if (!name || !email || !preferredDate || !preferredTime || !purpose) {
       return next(new AppError("Please provide all required fields", 400));
     }
@@ -22,6 +23,7 @@ export const bookAppointment = async (
         preferredTime,
         purpose,
         status: "Pending",
+        description: description,
       },
     });
     res.status(201).json({

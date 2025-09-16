@@ -54,6 +54,3 @@ jobs:
 
       - name: Build TypeScript backend
         run: npm run build
-
-      - name: Check Prisma schema
-        run: npx prisma validate

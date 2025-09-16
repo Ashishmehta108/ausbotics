@@ -5,6 +5,9 @@ import {
   getWorkflow,
   updateWorkflow,
   deleteWorkflow,
+  updateProgress,
+  getSheetData,
+  updateGoogleSheet,
 } from "../controllers/workflows.controller";
 import { authenticate, restrictTo } from "../middlewares/auth.middleware";
 
@@ -18,6 +21,9 @@ const router = Router();
 
 router.use(authenticate);
 
+router.get("/myworkflows", getAllWorkflows);
+
+router.get("/:id/sheet", restrictTo(Role.USER, Role.SUPERADMIN), getSheetData);
 router
   .route("/")
   .get(getAllWorkflows)
@@ -32,13 +38,10 @@ router
 router.post("/:id/execute", createWorkflowExecution);
 router.get("/:workflowId/executions", getWorkflowExecutions);
 
+router.patch("/:id/status", restrictTo(Role.SUPERADMIN), updateWorkflowStatus);
 
-router.patch(
-  "/:id/status",
-  restrictTo(Role.ADMIN, Role.SUPERADMIN),
-  updateWorkflowStatus
-);
+router.patch("/:id/progress", restrictTo(Role.SUPERADMIN), updateProgress);
 
-
+router.patch("/:id/sheet", restrictTo(Role.SUPERADMIN), updateGoogleSheet);
 
 export default router;

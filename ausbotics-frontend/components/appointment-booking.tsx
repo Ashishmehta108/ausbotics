@@ -5,13 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,7 +18,9 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/auth-context";
 import { Calendar, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { Navigation } from "./navigation";
 
+// ✅ schema updated: details → description
 const appointmentSchema = z.object({
   name: z.string().min(1, "Full name is required"),
   email: z.string().email("Invalid email address"),
@@ -36,7 +32,7 @@ const appointmentSchema = z.object({
     ),
   preferredTime: z.string().min(1, "Preferred time is required"),
   purpose: z.string().min(1, "Purpose is required"),
-  details: z.string().optional(),
+  description: z.string().optional(),
 });
 
 type AppointmentFormData = z.infer<typeof appointmentSchema>;
@@ -93,6 +89,7 @@ export function AppointmentBooking() {
     setError("");
 
     try {
+      //@ts-ignore
       const success = await bookAppointment(data);
       if (success) {
         setIsSubmitted(true);
@@ -109,37 +106,43 @@ export function AppointmentBooking() {
 
   if (isSubmitted) {
     return (
-      <section className="py-20 bg-muted/50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Card className="max-w-md mx-auto text-center">
-            <CardContent className="p-8">
-              <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-              <h3 className="text-2xl font-bold text-foreground mb-2">
-                Appointment Booked!
-              </h3>
-              <p className="text-muted-foreground mb-6">
-                Thank you for booking an appointment. We'll contact you soon to
-                confirm the details.
-              </p>
-              <Button onClick={() => setIsSubmitted(false)} className="w-full">
-                Book Another Appointment
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
+      <>
+        <Navigation />
+        <section className="py-20 bg-muted/50">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <Card className="max-w-md mx-auto text-center">
+              <CardContent className="p-8">
+                <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+                <h3 className="text-2xl font-bold text-foreground mb-2">
+                  Appointment Booked!
+                </h3>
+                <p className="text-muted-foreground mb-6">
+                  Thank you for booking an appointment. We'll contact you soon
+                  to confirm the details.
+                </p>
+                <Button
+                  onClick={() => setIsSubmitted(false)}
+                  className="w-full"
+                >
+                  Book Another Appointment
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+      </>
     );
   }
 
   const selectedTime = watch("preferredTime");
   const selectedPurpose = watch("purpose");
 
-  return (  
+  return (
     <section className="py-20 bg-muted/50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-foreground mb-4">
-            Book a Demo Appointment
+            Book an Appointment
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Ready to see our AI calling agents in action? Schedule a
@@ -152,11 +155,8 @@ export function AppointmentBooking() {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Calendar className="h-5 w-5" />
-              <span>Schedule Your Demo</span>
+              <span>Schedule Your Appointment </span>
             </CardTitle>
-            <CardDescription>
-              Fill out the form below and we'll get back to you within 24 hours.
-            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -167,6 +167,7 @@ export function AppointmentBooking() {
                 </div>
               )}
 
+              {/* Name + Email */}
               <div className="grid gap-6 md:grid-cols-2">
                 <div className="space-y-3">
                   <Label htmlFor="name">Full Name *</Label>
@@ -201,6 +202,7 @@ export function AppointmentBooking() {
                 </div>
               </div>
 
+              {/* Date + Time */}
               <div className="grid gap-6 md:grid-cols-2">
                 <div className="space-y-3">
                   <Label htmlFor="preferredDate">Preferred Date *</Label>
@@ -248,6 +250,7 @@ export function AppointmentBooking() {
                 </div>
               </div>
 
+              {/* Purpose */}
               <div className="space-y-3">
                 <Label htmlFor="purpose">Purpose of Meeting *</Label>
                 <Select
@@ -272,27 +275,29 @@ export function AppointmentBooking() {
                 )}
               </div>
 
+              {/* ✅ Description field */}
               <div className="space-y-3">
-                <Label htmlFor="details">Additional Details (Optional)</Label>
+                <Label htmlFor="description">Description (Optional)</Label>
                 <Textarea
-                  id="details"
+                  id="description"
                   placeholder="Tell us more about your needs or any specific questions you have..."
                   rows={4}
                   className="p-3 resize-none rounded-lg"
-                  {...register("details")}
+                  {...register("description")}
                 />
               </div>
 
+              {/* Submit button */}
               <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting ? (
                   <div className="flex items-center space-x-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground"></div>
-                    <span>Booking Appointment...</span>
+                    <span>Booking your Appointment...</span>
                   </div>
                 ) : (
                   <div className="flex items-center space-x-2">
                     <Calendar className="h-4 w-4" />
-                    <span>Book Demo Appointment</span>
+                    <span>Book Appointment</span>
                   </div>
                 )}
               </Button>

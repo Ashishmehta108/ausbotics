@@ -42,8 +42,7 @@ export const getAllAppointments = async (
 ) => {
   try {
     const { status } = req.query;
-   
-    
+
     const where: any = {};
     if (status) {
       where.status = status as AppointmentStatus;

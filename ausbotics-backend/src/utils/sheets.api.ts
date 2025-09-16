@@ -1,18 +1,22 @@
 import { google } from "googleapis";
-
+console.log;
 const sheets = google.sheets({
   version: "v4",
   auth: process.env.GOOGLE_API_KEY,
 });
 
-export const SPREADSHEET_ID = process.env.SPREADSHEET_ID!;
-
-export const fetchSheetData = async (sheetName: string) => {
+export const fetchSheetData = async (
+  sheetName: string,
+  spreadSheetUrl: string
+) => {
+  const spreadSheetId = getSheetIdFromUrl(spreadSheetUrl);
+  if (!spreadSheetId) return [];
   const response = await sheets.spreadsheets.values.get({
-    spreadsheetId: SPREADSHEET_ID,
-    range: `${sheetName}!A:G`,
+    spreadsheetId: spreadSheetId,
+    range: `'${sheetName}'!A:G`,
   });
 
+  console.log(response.data.values);
   const rows = response.data.values;
   if (!rows || rows.length === 0) return [];
 
@@ -27,3 +31,8 @@ export const fetchSheetData = async (sheetName: string) => {
     data: row[6] || "",
   }));
 };
+
+function getSheetIdFromUrl(url: string): string | null {
+  const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+  return match ? match[1] : null;
+}

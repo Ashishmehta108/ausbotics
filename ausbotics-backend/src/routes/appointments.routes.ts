@@ -18,7 +18,7 @@ appointmentRouter.use(authenticate);
 
 appointmentRouter.get("/user/:email", getUserAppointments);
 
-appointmentRouter.use(restrictTo(Role.SUPERADMIN));
+appointmentRouter.use(restrictTo(Role.SUPERADMIN, Role.ADMIN));
 appointmentRouter.get("/", getAllAppointments);
 appointmentRouter.get("/:id", getAppointment);
 appointmentRouter.patch("/:id/status", updateAppointmentStatus);

@@ -134,3 +134,9 @@ export const updateWorkflowExecution = async (
     next(new AppError(err.message, 500));
   }
 };
+
+
+// export const deleteWorkflowExecution=async(req:AuthRequest,res:Response,next:NextFunction)=>{
+//   const {id}=req.params;
+//   const isWorkflowExecutionPresent=await prisma.
+// }

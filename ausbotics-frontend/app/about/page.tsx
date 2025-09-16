@@ -1,8 +1,8 @@
-import { Navigation } from "@/components/navigation"
-import { AboutHero } from "@/components/about-hero"
-import { ProblemSolution } from "@/components/problem-solution"
+import { Navigation } from "@/components/navigation";
+import { AboutHero } from "@/components/about-hero";
+import { ProblemSolution } from "@/components/problem-solution";
 
-import { CompanyValues } from "@/components/company-values"
+import { CompanyValues } from "@/components/company-values";
 
 export default function AboutPage() {
   return (
@@ -12,5 +12,5 @@ export default function AboutPage() {
       <ProblemSolution />
       <CompanyValues />
     </main>
-  )
+  );
 }

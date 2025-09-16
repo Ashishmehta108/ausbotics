@@ -48,7 +48,7 @@ export function CreateWorkflowDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-  
+
   useEffect(() => {
     const fetchUsers = async () => {
       setIsLoading(true);
@@ -60,13 +60,13 @@ export function CreateWorkflowDialog({
             Authorization: `Bearer ${token}`,
           },
         });
-        
+
         if (!res.ok) {
           throw new Error("Failed to fetch users");
         }
-        
+
         const data = await res.json();
-        console.log("data is here",data)
+        console.log("data is here", data);
         setAllUsers(data.data.users || []);
       } catch (error) {
         console.error("Error fetching users:", error);
@@ -112,7 +112,6 @@ export function CreateWorkflowDialog({
         description: "Workflow created successfully",
       });
 
-      // Reset form
       setName("");
       setDescription("");
       setStatus("New");
@@ -158,6 +157,13 @@ export function CreateWorkflowDialog({
               disabled={isSubmitting}
             />
           </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Add google sheet link</label>
+            <Input
+              className="text-sm font-medium"
+              placeholder="Enter google sheet link here "
+            />
+          </div>
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Status</label>
@@ -181,9 +187,8 @@ export function CreateWorkflowDialog({
           <div className="space-y-2">
             <label className="text-sm font-medium">Assign Users</label>
             <Select
-              value={subscribedUsers.join(",")} // Convert array to string for display
+              value={subscribedUsers.join(",")}
               onValueChange={(value) => {
-                // Convert the string value back to an array
                 setSubscribedUsers((prev) => [...prev, value]);
               }}
               disabled={isLoading || isSubmitting}

@@ -4,6 +4,7 @@ import { DM_Sans, Arimo } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/auth-context";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Navigation } from "@/components/navigation";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -32,14 +33,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      suppressHydrationWarning
-      lang="en"
-      className={` ${arimo.variable}`}
-    >
+    <html suppressHydrationWarning lang="en" className={` ${arimo.variable}`}>
       <body className="font-sans antialiased">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+          
+            {children}
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

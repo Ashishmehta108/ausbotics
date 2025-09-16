@@ -6,24 +6,29 @@ import workflowsRoutes from "./routes/workflows.routes";
 import resultsRoutes from "./routes/results.routes";
 import dummyRouter from "./routes/dummy.routes";
 import { errorHandler } from "./middlewares/error.middleware";
+import morgan from "morgan";
 import appointmentRouter from "./routes/appointments.routes";
+
 const app = express();
 app.use(
   cors({
     origin: process.env.FRONTEND_URL,
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE","PATCH"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
+app.use(morgan("dev"));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/workflows", workflowsRoutes);
 app.use("/api/results", resultsRoutes);
 app.use("/api/dummy", dummyRouter);
-app.use("/api/appointments", appointmentRouter)
+app.use("/api/appointments", appointmentRouter);
 app.use("/api/health", (req, res) => {
   res.status(200).json({ message: "ok" });
 });

@@ -17,8 +17,6 @@ const router = Router();
 
 router.get("/", authenticate, authorize(["ADMIN", "SUPERADMIN"]), getAllUsers);
 
-export default router;
-
 router.use(authenticate);
 
 router.route("/me").get(getMe).patch(updateMe).delete(deleteMe);
@@ -32,3 +30,5 @@ router.get("/:id", getUserbyId);
 router.patch("/:id/role", restrictTo(Role.SUPERADMIN), updateUserRole);
 
 router.delete("/:id", deleteUser);
+
+export default router;

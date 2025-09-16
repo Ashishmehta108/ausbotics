@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -30,7 +30,8 @@ model Workflow {
   subscribedUserId   String
   subscribedUser     User                @relation("WorkflowUsers", fields: [subscribedUserId], references: [id])
   result             ExecutionResult?
-  googleSheet        String
+  googleSheet        String?
+  googleSheetName    String?
   workflowExecutions WorkflowExecution[]
 }
 
@@ -77,6 +78,7 @@ model Appointment {
   preferredDate DateTime
   preferredTime String
   purpose       String
+  description   String
   status        AppointmentStatus @default(Pending)
   createdAt     DateTime          @default(now())
 }

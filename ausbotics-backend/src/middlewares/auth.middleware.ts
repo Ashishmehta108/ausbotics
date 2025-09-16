@@ -1,17 +1,17 @@
-import { Request, Response, NextFunction } from 'express';
-import { prisma } from '../models/client';
-import { Role } from '@prisma/client';
+import { Request, Response, NextFunction } from "express";
+import { prisma } from "../models/client";
+import { Role } from "@prisma/client";
 import {
   verifyAccessToken,
   verifyRefreshToken,
   signAccessToken,
-} from '../utils/jwt';
-import { AppError } from './error.middleware';
+  signRefreshToken,
+} from "../utils/jwt";
+import { AppError } from "./error.middleware";
 
 export interface AuthRequest extends Request {
   user?: { id: string; role: Role };
 }
-
 
 export const authenticate = async (
   req: AuthRequest,
@@ -21,58 +21,59 @@ export const authenticate = async (
   try {
     const authHeader = req.headers.authorization;
 
-    // const refreshToken = req.cookies?.refreshToken;
+    const refreshToken = req.cookies?.refreshToken;
     if (!authHeader) {
-      return next(new AppError('Please log in to access this route', 401));
+      return next(new AppError("Please log in to access this route", 401));
     }
 
-    const accessToken = authHeader?.split(' ')[1];
+    const accessToken = authHeader?.split(" ")[1];
     if (accessToken) {
       try {
         const decoded = verifyAccessToken(accessToken);
         req.user = { id: decoded.id, role: decoded.role as Role };
         return next();
       } catch (err: any) {
-        if (err.message !== 'Token has expired') {
-          return next(new AppError('Invalid access token', 401));
+        if (err.message !== "Token has expired") {
+          return next(new AppError("Invalid access token", 401));
         }
       }
     }
-    // If access token is expired or not provided, try to refresh it
-    // if (refreshToken) {
-    //   try {
-    //     const decoded = verifyRefreshToken(refreshToken);
+    if (refreshToken) {
+      try {
+        const decoded = verifyRefreshToken(refreshToken);
 
-    //     // Find user and verify refresh token
-    //     const user = await prisma.user.findUnique({
-    //       where: { id: decoded.id },
-    //       select: { id: true, role: true, refreshToken: true },
-    //     });
+        const user = await prisma.user.findUnique({
+          where: { id: decoded.id },
+          select: { id: true, role: true, refreshToken: true },
+        });
 
-    //     if (!user || user.refreshToken !== refreshToken) {
-    //       return next(new AppError('Invalid refresh token', 401));
-    //     }
+        if (!user || user.refreshToken !== refreshToken) {
+          return next(new AppError("Invalid refresh token", 401));
+        }
 
-    //     // Generate new access token
-    //     const newAccessToken = signAccessToken({ 
-    //       id: user.id, 
-    //       role: user.role 
-    //     });
+        const newAccessToken = signAccessToken({
+          id: user.id,
+          role: user.role,
+        });
+        const newRefreshToken = signRefreshToken({
+          id: user.id,
+          role: user.role,
+        });
 
-    //     res.cookie("accessToken",newAccessToken)
-    //     res.setHeader('x-access-token', newAccessToken);
+        res.cookie("accessToken", newAccessToken);
+        res.setHeader("x-access-token", newAccessToken);
 
-    //     req.user = { id: user.id, role: user.role };
+        req.user = { id: user.id, role: user.role };
 
-    //     return next();
-    //   } catch (err: any) {
-    //     return next(new AppError('Invalid or expired refresh token', 401));
-    //   }
-    // }
+        return next();
+      } catch (err: any) {
+        return next(new AppError("Invalid or expired refresh token", 401));
+      }
+    }
 
-    return next(new AppError('Not authorized to access this route', 401));
+    return next(new AppError("Not authorized to access this route", 401));
   } catch (error: any) {
-    return next(new AppError('Authentication failed', 401));
+    return next(new AppError("Authentication failed", 401));
   }
 };
 
@@ -81,13 +82,13 @@ export const restrictTo = (...roles: Role[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
       return next(
-        new AppError('You are not logged in! Please log in to get access.', 401)
+        new AppError("You are not logged in! Please log in to get access.", 401)
       );
     }
 
     if (!roles.includes(req.user.role)) {
       return next(
-        new AppError('You do not have permission to perform this action', 403)
+        new AppError("You do not have permission to perform this action", 403)
       );
     }
 

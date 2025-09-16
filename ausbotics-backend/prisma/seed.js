@@ -5,6 +5,11 @@ const prisma = new PrismaClient();
 
 async function main() {
   console.log("🔹 Starting seed script...");
+  await prisma.workflowExecution.deleteMany({});
+  await prisma.executionResult.deleteMany({});
+  await prisma.workflow.deleteMany({});
+  await prisma.user.deleteMany({});
+  await prisma.appointment.deleteMany({});
 
   // Hash password
   const passwordHash = await bcrypt.hash("password123", 10);
@@ -33,6 +38,12 @@ async function main() {
 
   // --- Workflows ---
   console.log("👉 Upserting workflows...");
+
+  // Shared Google Sheet link & name
+  const googleSheetUrl =
+    "https://docs.google.com/spreadsheets/d/1iJzXpnBxH5s8Aa8WVXHIvBZiOH05ippKgSgBKGHq5o0/edit?gid=0#gid=0";
+  const googleSheetName = "Sheet";
+
   const workflows = [
     {
       name: "Sample Workflow 1",
@@ -51,17 +62,20 @@ async function main() {
   for (const workflow of workflows) {
     const upsertedWorkflow = await prisma.workflow.upsert({
       where: { name: workflow.name },
-      update: {},
+      update: {
+        googleSheet: googleSheetUrl,
+        googleSheetName: googleSheetName,
+      },
       create: {
         name: workflow.name,
         description: workflow.description,
         status: workflow.status,
         progress: workflow.progress,
-        googleSheet: "https://docs.google.com/spreadsheets/d/your-sheet-id/edit",
+        googleSheet: googleSheetUrl,
+        googleSheetName: googleSheetName,
         subscribedUser: {
           connect: { email: "user@example.com" },
         },
-
       },
     });
     console.log(`✅ Upserted workflow: ${upsertedWorkflow.name}`);

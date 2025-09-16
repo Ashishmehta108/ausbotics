@@ -1,6 +1,7 @@
 import { SetStateAction } from "react";
 import { WorkflowDto, WorkflowStatus } from "../types";
 
+import { useRef } from "react";
 // Updated handleSaveWorkflow
 export async function handleSaveWorkflow(
   updatedWorkflow: {
@@ -13,18 +14,21 @@ export async function handleSaveWorkflow(
 ) {
   try {
     const token = localStorage.getItem("accessToken");
-    const res = await fetch(`http://localhost:5000/api/workflows/${updatedWorkflow.id}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        name: updatedWorkflow.name,
-        description: updatedWorkflow.description,
-        status: updatedWorkflow.status,
-      }),
-    });
+    const res = await fetch(
+      `http://localhost:5000/api/workflows/${updatedWorkflow.id}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: updatedWorkflow.name,
+          description: updatedWorkflow.description,
+          status: updatedWorkflow.status,
+        }),
+      }
+    );
 
     const data = await res.json();
 
@@ -42,7 +46,6 @@ export async function handleSaveWorkflow(
   }
 }
 
-
 export async function saveWorkflow(
   id: string,
   name: string,
@@ -51,9 +54,13 @@ export async function saveWorkflow(
   setWorkflows: React.Dispatch<React.SetStateAction<WorkflowDto[]>>
 ) {
   try {
-    const res = await fetch(`/api/workflows/${id}`, {
+    const token = localStorage.getItem("accessToken");
+    const res = await fetch(`http://localhost:5000/api/workflows/${id}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify({ name, description, status }),
     });
 
@@ -64,10 +71,10 @@ export async function saveWorkflow(
       prev.map((w) =>
         w.id === id
           ? {
-            ...w,
-            ...data.workflow,
-            latestExecutionProgress: data.latestExecutionProgress,
-          }
+              ...w,
+              ...data.workflow,
+              status: status,
+            }
           : w
       )
     );
@@ -76,64 +83,6 @@ export async function saveWorkflow(
     alert("Error updating workflow: " + (err as Error).message);
   }
 }
-
-export async function activateWorkflow(
-  id: string,
-  setWorkflows: React.Dispatch<React.SetStateAction<WorkflowDto[]>>
-) {
-  try {
-    const res = await fetch(`/api/workflows/${id}/activate`, {
-      method: "POST",
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || "Failed to activate workflow");
-
-    setWorkflows((prev) =>
-      prev.map((w) =>
-        w.id === id
-          ? {
-            ...w,
-            ...data.workflow,
-            latestExecutionProgress: data.latestExecutionProgress,
-          }
-          : w
-      )
-    );
-  } catch (err) {
-    console.error(err);
-    alert("Error activating workflow: " + (err as Error).message);
-  }
-}
-
-export async function deactivateWorkflow(
-  id: string,
-  setWorkflows: React.Dispatch<React.SetStateAction<WorkflowDto[]>>
-) {
-  try {
-    const res = await fetch(`/api/workflows/${id}/deactivate`, {
-      method: "POST",
-    });
-    const data = await res.json();
-    if (!res.ok)
-      throw new Error(data.message || "Failed to deactivate workflow");
-
-    setWorkflows((prev) =>
-      prev.map((w) =>
-        w.id === id
-          ? {
-            ...w,
-            ...data.workflow,
-            latestExecutionProgress: data.latestExecutionProgress,
-          }
-          : w
-      )
-    );
-  } catch (err) {
-    console.error(err);
-    alert("Error deactivating workflow: " + (err as Error).message);
-  }
-}
-
 
 interface CreateWorkflowPayload {
   name: string;
@@ -150,7 +99,10 @@ export async function createWorkflow(
     const token = localStorage.getItem("accessToken");
     const res = await fetch("http://localhost:5000/api/workflows", {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify(payload),
     });
 
@@ -166,3 +118,27 @@ export async function createWorkflow(
     alert("Error creating workflow: " + (err as Error).message);
   }
 }
+export const updateWorkflowProgress = async (
+  workflowId: string,
+  progress: number,
+  setWorkflows: React.Dispatch<SetStateAction<WorkflowDto[]>>
+) => {
+  try {
+    const token = localStorage.getItem("accessToken");
+    const res = await fetch(
+      `http://localhost:5000/api/workflows/${workflowId}/progress`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ progress }),
+      }
+    );
+    if (!res.ok) throw new Error("Failed to update progress");
+    const data = await res.json();
+  } catch (err) {
+    console.error("Error updating progress:", err);
+  }
+};

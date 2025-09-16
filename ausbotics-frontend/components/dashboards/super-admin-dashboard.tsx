@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/auth-context";
+import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Slider } from "@/components/ui/slider";
 import {
   Table,
   TableBody,
@@ -34,6 +36,7 @@ import {
   useDroppable,
   DragMoveEvent,
 } from "@dnd-kit/core";
+import { AppointmentsTab } from "./appoinment/AppointmentTab";
 function Droppable({
   id,
   children,
@@ -89,25 +92,14 @@ import {
 } from "lucide-react";
 import { UserViewModal } from "@/components/user-view-modal";
 import Link from "next/link";
-import { authApi, Role, userApi } from "@/lib/api";
+import { authApi, Role } from "@/lib/api";
 import { AppointmentDto, WorkflowDto, WorkflowStatus } from "@/lib/types";
 import { ModeToggle } from "../Modetoggle";
-import { WorkflowDetailModal } from "../workflow-detail-modal";
 import { EditWorkflowDialog } from "../workflow/updateWorkflow";
-import {
-  activateWorkflow,
-  createWorkflow,
-  deactivateWorkflow,
-  handleSaveWorkflow,
-} from "@/lib/super-admin/workflowUpdates";
+import { handleSaveWorkflow } from "@/lib/super-admin/workflowUpdates";
 import { CreateWorkflowDialog } from "./createworkflows/createworkflowDialog";
-
-// Mock users data with names for display
-const USER_NAMES: { [key: string]: string } = {
-  demo_user: "Demo User",
-  demo_admin: "Demo Admin",
-  demo_super: "Demo Super Admin",
-};
+import { updateWorkflowProgress } from "../../lib/super-admin/workflowUpdates";
+import { GoogleSheetDialog } from "../googleSheet/GoogleSheetDialog";
 
 export function SuperAdminDashboard() {
   const { user, signOut, promoteUser, getAllWorkflows, getAllAppointments } =
@@ -119,12 +111,8 @@ export function SuperAdminDashboard() {
   const [selectedWorkflow, setSelectedWorkflow] = useState<WorkflowDto | null>(
     null
   );
-
-  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [isGoogleSheetOpen, setIsGoogleSheetOpen] = useState(false);
   const [isWorkflowModalOpen, setIsWorkflowModalOpen] = useState(false);
-  const [isCreateWorkflowOpen, setIsCreateWorkflowOpen] = useState(false);
-  console.log(selectedWorkflow);
-
   const [appointments, setappointments] = useState<AppointmentDto[]>([]);
   useEffect(() => {
     const LoadAppointmentandworkflow = async () => {
@@ -185,10 +173,10 @@ export function SuperAdminDashboard() {
       prev.map((w) =>
         w.id === workflowId
           ? {
-            ...w,
-            status: targetStatus,
-            progress: targetStatus === "Done" ? 100 : w.progress,
-          }
+              ...w,
+              status: targetStatus,
+              progress: targetStatus === "Done" ? 100 : w.progress,
+            }
           : w
       )
     );
@@ -208,6 +196,7 @@ export function SuperAdminDashboard() {
       );
     }
   };
+  const progressTimeoutRef = useRef<{ [key: string]: NodeJS.Timeout }>({});
 
   useEffect(() => {
     const getAllusers = async () => {
@@ -276,40 +265,57 @@ export function SuperAdminDashboard() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-border bg-card">
+      <header className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <Link href="/" className="flex items-center space-x-2">
-                <div className="bg-primary rounded-lg p-2">
+            {/* Left side - Logo & Nav */}
+            <div className="flex items-center space-x-6">
+              <Link href="/" className="flex items-center space-x-2 group">
+                <div className="bg-primary rounded-xl p-2 transition-transform group-hover:scale-105">
                   <Bot className="h-6 w-6 text-primary-foreground" />
                 </div>
-                <span className="text-xl font-bold">Ausbotics</span>
+                <span className="text-xl font-bold tracking-tight">
+                  Ausbotics
+                </span>
               </Link>
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/">
-                  <Home className="h-4 w-4 mr-2" />
-                  Home
-                </Link>
-              </Button>
+
+              <nav className="hidden md:flex items-center space-x-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  asChild
+                  className="transition-colors"
+                >
+                  <Link href="/" className="flex items-center">
+                    <Home className="h-4 w-4 mr-2" />
+                    Home
+                  </Link>
+                </Button>
+              </nav>
             </div>
 
             <div className="flex items-center space-x-4">
-              <Badge variant="destructive">Super Admin</Badge>
-              <span className="text-sm text-muted-foreground">
+              <Badge variant="destructive" className="rounded-md text-xs">
+                Super Admin
+              </Badge>
+              <span className="hidden sm:inline text-sm text-muted-foreground truncate max-w-[150px]">
                 Welcome, {user?.fullName || user?.email}
               </span>
               <ModeToggle />
-              <Button variant="outline" size="sm" onClick={signOut}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
+              <Button
+                variant="default"
+                size="sm"
+                onClick={signOut}
+                className="flex items-center space-x-2"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Logout</span>
               </Button>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto  px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">
@@ -320,7 +326,6 @@ export function SuperAdminDashboard() {
           </p>
         </div>
 
-        {/* System Statistics */}
         <div className="grid gap-6 md:grid-cols-5 mb-8">
           <Card>
             <CardContent className="p-6">
@@ -402,7 +407,6 @@ export function SuperAdminDashboard() {
               <TabsTrigger value="users">User Management</TabsTrigger>
               <TabsTrigger value="workflows">All Workflows</TabsTrigger>
               <TabsTrigger value="appointments">All Appointments</TabsTrigger>
-
             </TabsList>
 
             <TabsContent value="users">
@@ -443,14 +447,13 @@ export function SuperAdminDashboard() {
                                 userData.role === "superAdmin"
                                   ? "destructive"
                                   : userData.role === "admin"
-                                    ? "default"
-                                    : "secondary"
+                                  ? "default"
+                                  : "secondary"
                               }
                             >
                               {userData.role}
                             </Badge>
                           </TableCell>
-                          {/* <TableCell>{userData.lastActive}</TableCell> */}
                           <TableCell>
                             <Button
                               size="sm"
@@ -548,50 +551,81 @@ export function SuperAdminDashboard() {
                                           </div>
                                         </Badge>
                                       </div>
-
                                       <div className="grid gap-4 md:grid-cols-2">
                                         <div>
                                           <div className="flex justify-between text-sm mb-1">
                                             <span>Progress</span>
                                             <span>{workflow.progress}%</span>
                                           </div>
-                                          <Progress
-                                            value={workflow.progress}
-                                            className="h-2"
-                                          />
+                                          <div className="relative w-full">
+                                            <Slider
+                                              value={[workflow.progress]}
+                                              max={100}
+                                              step={1}
+                                              className="w-full h-2 cursor-pointer"
+                                              onValueChange={(value) => {
+                                                const newProgress = value[0];
+
+                                                setWorkflows((prev) =>
+                                                  prev.map((w) =>
+                                                    w.id === workflow.id
+                                                      ? {
+                                                          ...w,
+                                                          progress: newProgress,
+                                                        }
+                                                      : w
+                                                  )
+                                                );
+                                                if (
+                                                  progressTimeoutRef.current[
+                                                    workflow.id
+                                                  ]
+                                                ) {
+                                                  clearTimeout(
+                                                    progressTimeoutRef.current[
+                                                      workflow.id
+                                                    ]
+                                                  );
+                                                }
+
+                                                progressTimeoutRef.current[
+                                                  workflow.id
+                                                ] = setTimeout(() => {
+                                                  updateWorkflowProgress(
+                                                    workflow.id,
+                                                    newProgress,
+                                                    setWorkflows
+                                                  );
+                                                }, 200);
+                                              }}
+                                            />
+                                          </div>
                                         </div>
 
-                                        <div>
-                                          <p className="text-sm font-medium mb-2">
-                                            Assigned Users:
-                                          </p>
-                                          <div className="flex flex-wrap gap-1">
-                                            {workflow.subscribedUsers
-                                              ?.length === 0 ? (
-                                              <Badge variant="outline">
-                                                No users assigned
-                                              </Badge>
-                                            ) : (
-                                              workflow.subscribedUsers?.map(
-                                                (user) => (
-                                                  <Badge
-                                                    key={user.id}
-                                                    variant="secondary"
-                                                  >
-                                                    {user.email}
-                                                  </Badge>
-                                                )
-                                              )
-                                            )}
-                                            <Button
-                                              onPointerDown={(e) => {
-                                                e.stopPropagation();
-                                              }}
-                                              onClick={() => handleEditWorkflow(workflow)}
-                                            >
-                                              Edit workflow
-                                            </Button>
-                                          </div>
+                                        <div className="flex items-center gap-2">
+                                          <Button
+                                            onPointerDown={(e) =>
+                                              e.stopPropagation()
+                                            }
+                                            onClick={() =>
+                                              handleEditWorkflow(workflow)
+                                            }
+                                          >
+                                            Edit workflow
+                                          </Button>
+
+                                          <Button
+                                            variant="outline"
+                                            onPointerDown={(e) =>
+                                              e.stopPropagation()
+                                            }
+                                            onClick={() => {
+                                              setSelectedWorkflow(workflow);
+                                              setIsGoogleSheetOpen(true);
+                                            }}
+                                          >
+                                            Google Sheet
+                                          </Button>
                                         </div>
                                       </div>
 
@@ -602,7 +636,6 @@ export function SuperAdminDashboard() {
                                             workflow.createdAt
                                           ).toLocaleDateString()}
                                         </span>
-                                        <span>ID: {workflow.id}</span>
                                       </div>
                                     </div>
                                   </Draggable>
@@ -617,92 +650,10 @@ export function SuperAdminDashboard() {
                 </DndContext>
               </div>
             </TabsContent>
-
-            <TabsContent value="appointments">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Calendar className="h-5 w-5" />
-                    <span>System-Wide Appointments</span>
-                    <Badge variant="secondary">
-                      {appointments.length} total
-                    </Badge>
-                  </CardTitle>
-                  <CardDescription>
-                    Complete overview of all appointments booked through the
-                    demo page
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {appointments.length === 0 ? (
-                    <div className="text-center py-8">
-                      <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">
-                        No Appointments Yet
-                      </h3>
-                      <p className="text-muted-foreground">
-                        Appointments booked through the demo page will appear
-                        here.
-                      </p>
-                    </div>
-                  ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Time</TableHead>
-                          <TableHead>Purpose</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Booked</TableHead>
-                          <TableHead>ID</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {appointments.map((appointment) => (
-                          <TableRow key={appointment.id}>
-                            <TableCell className="font-medium">
-                              {appointment.name}
-                            </TableCell>
-                            <TableCell>{appointment.email}</TableCell>
-                            <TableCell>
-                              {new Date(
-                                appointment.preferredDate
-                              ).toLocaleDateString()}
-                            </TableCell>
-                            <TableCell>{appointment.preferredTime}</TableCell>
-                            <TableCell>{appointment.purpose}</TableCell>
-                            <TableCell>
-                              <Badge
-                                variant={
-                                  appointment.status === "Confirmed"
-                                    ? "default"
-                                    : appointment.status === "Pending"
-                                      ? "secondary"
-                                      : "destructive"
-                                }
-                              >
-                                {appointment.status}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              {new Date(
-                                appointment.createdAt
-                              ).toLocaleDateString()}
-                            </TableCell>
-                            <TableCell className="text-xs text-muted-foreground">
-                              {appointment.id}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  )}
-                </CardContent>
-              </Card>
-
-            </TabsContent>
+            <AppointmentsTab
+              appointments={appointments}
+              setAppointments={setappointments}
+            />
           </Tabs>
           <div className="relative flex-1">
             <Button
@@ -731,11 +682,18 @@ export function SuperAdminDashboard() {
           setWorkflows={setWorkflows}
           isOpen={isWorkflowModalOpen}
           setIsOpen={setIsWorkflowModalOpen}
-          onSave={(updated) => handleSaveWorkflow(updated, setWorkflows)}
-          onActivate={(id) => activateWorkflow(id, setWorkflows)}
-          onDeactivate={(id) => deactivateWorkflow(id, setWorkflows)}
         />
       )}
+
+      {selectedWorkflow && (
+        <GoogleSheetDialog
+          workflowId={selectedWorkflow.id}
+          sheetUrl={selectedWorkflow.googleSheetUrl || undefined}
+          open={isGoogleSheetOpen}
+          setOpen={setIsGoogleSheetOpen}
+        />
+      )}
+
       <UserViewModal
         user={selectedUser}
         isOpen={isModalOpen}

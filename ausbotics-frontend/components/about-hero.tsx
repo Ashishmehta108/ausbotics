@@ -48,11 +48,7 @@ export function AboutHero() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, delay: 0.4 }}
           >
-            <Button
-              size="lg"
-              asChild
-              className=" transition-transform"
-            >
+            <Button size="lg" asChild className=" transition-transform">
               <Link href="/demo" className="inline-flex items-center gap-2">
                 See Our Technology in Action
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />

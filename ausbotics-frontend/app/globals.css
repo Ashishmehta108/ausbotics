@@ -14,7 +14,7 @@
   --popover-foreground: oklch(0.25 0.003 270);
 
   /* Accent instead of primary */
-  --accent: oklch(0.64 0.18 280); /* indigo-violet */
+  --accent: oklch(33.364% 0.00351 286.055); /* indigo-violet */
   --accent-foreground: oklch(0.985 0 0);
 
   /* Primary kept neutral */
@@ -73,7 +73,7 @@
   --popover: oklch(0.2 0.004 270);
   --popover-foreground: oklch(0.95 0.003 270);
 
-  --accent: oklch(0.64 0.18 280); /* violet-indigo */
+  --accent: oklch(92.638% 0.00681 286.043); /* violet-indigo */
   --accent-foreground: oklch(0.98 0 0);
 
   --primary: oklch(0.35 0.01 270); /* zinc-600 dark */

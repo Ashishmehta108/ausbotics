@@ -1,27 +1,26 @@
-import { Card } from "@/components/ui/card"
-import { Upload, Settings, Phone, BarChart3, ArrowRight } from "lucide-react"
+import { Card } from "@/components/ui/card";
+import { Upload, Settings, Phone, BarChart3, ArrowRight } from "lucide-react";
 
 export function ProcessSteps() {
   const steps = [
     {
       number: "01",
       icon: Upload,
-      title: "Upload Your Business Script",
+      title: "Book a Strategy Session",
       description:
-        "Provide your call scripts, FAQs, and business information. Our system analyzes your content to understand your brand voice and customer service approach.",
+        "Present your business challenge, and we’ll craft a tailored AI agent designed to fit your needs. Define the voice and tone that match your brand, and set clear goals to ensure meaningful customer outcomes.",
       details: [
-        "Upload existing scripts and documentation",
-        "Define your brand voice and tone",
-        "Set conversation goals and outcomes",
-        "Configure business rules and policies",
+        " Share your problem statement for a customized AI solution",
+        "Define your brand’s voice and communication style",
+        "Set goals and desired outcomes for your AI agent",
       ],
     },
     {
       number: "02",
       icon: Settings,
-      title: "Train Your AI Agent",
+      title: "Ongoing Training & Refinement",
       description:
-        "Our advanced AI learns your business processes, products, and services. The training process ensures natural, on-brand conversations every time.",
+        "Your AI agent will be trained to handle your business needs, and we’ll continuously update it to incorporate improvements, changes, or new requirements.",
       details: [
         "AI learns your product catalog and services",
         "Customizes responses to match your brand",
@@ -32,9 +31,9 @@ export function ProcessSteps() {
     {
       number: "03",
       icon: Phone,
-      title: "AI Makes Intelligent Calls",
+      title: "Personalized Dashboard",
       description:
-        "Your AI agent starts making calls, handling customer inquiries, generating leads, and providing support with human-like conversations.",
+        "Access a dedicated dashboard to view your workspace, monitor customer interactions, and track outcomes—while your AI agent reduces the manual effort of calls and messages.",
       details: [
         "Handles inbound and outbound calls 24/7",
         "Manages multiple conversations simultaneously",
@@ -42,28 +41,20 @@ export function ProcessSteps() {
         "Maintains conversation context and history",
       ],
     },
-    {
-      number: "04",
-      icon: BarChart3,
-      title: "Monitor & Optimize",
-      description:
-        "Access comprehensive analytics and reports to track performance, measure ROI, and continuously improve your AI agent's effectiveness.",
-      details: [
-        "Real-time call monitoring and analytics",
-        "Performance metrics and KPI tracking",
-        "Customer satisfaction scoring",
-        "Continuous learning and improvement",
-      ],
-    },
-  ]
+  ];
 
   return (
     <section className="py-20 bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-3xl lg:text-4xl font-bold text-foreground mb-4">Simple 4-Step Process</h2>
+          <h2 className="text-3xl lg:text-4xl font-bold text-foreground mb-4">
+            Simple 3-Step Process
+          </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Get your AI calling agent up and running in minutes, not weeks. Our streamlined process makes it easy.
+            Get your AI calling agent up and running in minutes, not weeks. Our
+            streamlined process makes it easy to Bring your AI calling agent to
+            life with a simple, streamlined process designed to make setup
+            effortless and impactful.
           </p>
         </div>
 
@@ -76,7 +67,9 @@ export function ProcessSteps() {
               )}
 
               <div
-                className={`flex flex-col lg:flex-row items-center gap-8 ${index % 2 === 1 ? "lg:flex-row-reverse" : ""}`}
+                className={`flex flex-col lg:flex-row items-center gap-8 ${
+                  index % 2 === 1 ? "lg:flex-row-reverse" : ""
+                }`}
               >
                 {/* Step Content */}
                 <div className="flex-1">
@@ -89,11 +82,18 @@ export function ProcessSteps() {
                         <step.icon className="h-6 w-6 text-primary" />
                       </div>
                     </div>
-                    <h3 className="text-2xl font-bold text-foreground mb-4">{step.title}</h3>
-                    <p className="text-muted-foreground mb-6 leading-relaxed">{step.description}</p>
+                    <h3 className="text-2xl font-bold text-foreground mb-4">
+                      {step.title}
+                    </h3>
+                    <p className="text-muted-foreground mb-6 leading-relaxed">
+                      {step.description}
+                    </p>
                     <ul className="space-y-2">
                       {step.details.map((detail, detailIndex) => (
-                        <li key={detailIndex} className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <li
+                          key={detailIndex}
+                          className="flex items-center gap-2 text-sm text-muted-foreground"
+                        >
                           <div className="w-1.5 h-1.5 bg-primary rounded-full flex-shrink-0"></div>
                           {detail}
                         </li>
@@ -121,5 +121,5 @@ export function ProcessSteps() {
         </div>
       </div>
     </section>
-  )
+  );
 }

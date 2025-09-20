@@ -13,13 +13,6 @@ import {
   CardTitle,
   CardFooter,
 } from "../ui/card";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "../ui/dialog";
 import { Skeleton } from "../ui/skeleton";
 import { Badge } from "../ui/badge";
 import {
@@ -40,7 +33,6 @@ export function UserDashboard() {
   const [sheetData, setSheetData] = useState<any[]>([]);
   const [sheetLink, setSheetLink] = useState<string | null>(null);
   const [loadingSheet, setLoadingSheet] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [loadingWorkflows, setLoadingWorkflows] = useState(true);
 
   useEffect(() => {
@@ -61,6 +53,9 @@ export function UserDashboard() {
   const fetchSheet = async (workflowId: string) => {
     setSelectedWorkflow(workflows.find((w) => w.id === workflowId) || null);
     setLoadingSheet(true);
+    setSheetData([]);
+    setSheetLink(null);
+
     try {
       const token = localStorage.getItem("accessToken");
       const res = await fetch(
@@ -70,11 +65,8 @@ export function UserDashboard() {
       const data = await res.json();
       setSheetData(data.data.fetchGooglesheetData || []);
       setSheetLink(data.data.sheetUrl || null);
-      setIsModalOpen(true);
     } catch (err) {
       console.error("Error fetching sheet:", err);
-      setSheetData([]);
-      setSheetLink(null);
     } finally {
       setLoadingSheet(false);
     }
@@ -169,14 +161,17 @@ export function UserDashboard() {
                 </CardContent>
                 <CardFooter>
                   <Button
+                    type="button"
                     onClick={() => fetchSheet(workflow.id)}
-                    disabled={loadingSheet}
+                    disabled={
+                      loadingSheet && selectedWorkflow?.id === workflow.id
+                    }
                     size="sm"
                   >
                     {loadingSheet && selectedWorkflow?.id === workflow.id && (
                       <Loader2 className="h-4 w-4 animate-spin mr-2 inline-block" />
                     )}
-                    View Sheet
+                    View Workspace
                   </Button>
                 </CardFooter>
               </Card>
@@ -184,14 +179,12 @@ export function UserDashboard() {
           </div>
         )}
 
-        {/* Sheet Dialog */}
-        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent className="max-w-4xl w-full bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50">
-            <DialogHeader>
-              <DialogTitle>
-                {selectedWorkflow?.name || "Workflow Sheet Data"}
-              </DialogTitle>
-            </DialogHeader>
+        {/* Inline Sheet Viewer */}
+        {selectedWorkflow && (
+          <div className="mt-12 border border-border rounded-xl p-6 bg-card shadow-sm">
+            <h2 className="text-2xl font-semibold mb-4">
+              {selectedWorkflow?.name || "Workflow Sheet Data"}
+            </h2>
 
             {loadingSheet ? (
               <div className="flex justify-center py-8">
@@ -229,21 +222,20 @@ export function UserDashboard() {
 
             {sheetLink && (
               <div className="mt-4">
-                <Button asChild variant="link" size="sm" className="text-zinc-500 dark:text-zinc-400">
+                <Button
+                  asChild
+                  variant="link"
+                  size="sm"
+                  className="text-zinc-500 dark:text-zinc-400"
+                >
                   <a href={sheetLink} target="_blank" rel="noopener noreferrer">
                     Open Full Sheet
                   </a>
                 </Button>
               </div>
             )}
-
-            <div className="mt-4 flex justify-end">
-              <DialogClose asChild>
-                <Button variant="outline">Close</Button>
-              </DialogClose>
-            </div>
-          </DialogContent>
-        </Dialog>
+          </div>
+        )}
       </main>
     </div>
   );

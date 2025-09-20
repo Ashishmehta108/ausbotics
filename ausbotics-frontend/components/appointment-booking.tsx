@@ -138,173 +138,182 @@ export function AppointmentBooking() {
   const selectedPurpose = watch("purpose");
 
   return (
-    <section className="py-20 bg-muted/50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-foreground mb-4">
-            Book an Appointment
-          </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Ready to see our AI calling agents in action? Schedule a
-            personalized demo and discover how we can transform your customer
-            communications.
-          </p>
-        </div>
+    <>
+      <Navigation />
+      <section className="py-20 bg-muted/50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-foreground mb-4">
+              Book an Appointment
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Ready to see our AI calling agents in action? Schedule a
+              personalized meeting and discover how we can transform your customer
+              communications.
+            </p>
+          </div>
 
-        <Card className="max-w-2xl mx-auto">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Calendar className="h-5 w-5" />
-              <span>Schedule Your Appointment </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              {error && (
-                <div className="flex items-center space-x-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-                  <AlertCircle className="h-4 w-4 text-destructive" />
-                  <span className="text-sm text-destructive">{error}</span>
-                </div>
-              )}
+          <Card className="max-w-2xl mx-auto">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Calendar className="h-5 w-5" />
+                <span>Schedule Your Appointment </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                {error && (
+                  <div className="flex items-center space-x-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                    <AlertCircle className="h-4 w-4 text-destructive" />
+                    <span className="text-sm text-destructive">{error}</span>
+                  </div>
+                )}
 
-              {/* Name + Email */}
-              <div className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-3">
-                  <Label htmlFor="name">Full Name *</Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="Enter your full name"
-                    className="p-3 rounded-lg"
-                    {...register("name")}
-                  />
-                  {errors.name && (
-                    <p className="text-sm text-destructive">
-                      {errors.name.message}
-                    </p>
-                  )}
-                </div>
+                {/* Name + Email */}
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="space-y-3">
+                    <Label htmlFor="name">Full Name *</Label>
+                    <Input
+                      id="name"
+                      type="text"
+                      placeholder="Enter your full name"
+                      className="p-3 rounded-lg"
+                      {...register("name")}
+                    />
+                    {errors.name && (
+                      <p className="text-sm text-destructive">
+                        {errors.name.message}
+                      </p>
+                    )}
+                  </div>
 
-                <div className="space-y-3">
-                  <Label htmlFor="email">Email Address *</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Enter your email"
-                    className="p-3 rounded-lg"
-                    {...register("email")}
-                  />
-                  {errors.email && (
-                    <p className="text-sm text-destructive">
-                      {errors.email.message}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Date + Time */}
-              <div className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-3">
-                  <Label htmlFor="preferredDate">Preferred Date *</Label>
-                  <Input
-                    id="preferredDate"
-                    type="date"
-                    min={new Date().toISOString().split("T")[0]}
-                    className="p-3 rounded-lg"
-                    {...register("preferredDate")}
-                  />
-                  {errors.preferredDate && (
-                    <p className="text-sm text-destructive">
-                      {errors.preferredDate.message}
-                    </p>
-                  )}
+                  <div className="space-y-3">
+                    <Label htmlFor="email">Email Address *</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="Enter your email"
+                      className="p-3 rounded-lg"
+                      {...register("email")}
+                    />
+                    {errors.email && (
+                      <p className="text-sm text-destructive">
+                        {errors.email.message}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
+                {/* Date + Time */}
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="space-y-3">
+                    <Label htmlFor="preferredDate">Preferred Date *</Label>
+                    <Input
+                      id="preferredDate"
+                      type="date"
+                      min={new Date().toISOString().split("T")[0]}
+                      className="p-3 rounded-lg"
+                      {...register("preferredDate")}
+                    />
+                    {errors.preferredDate && (
+                      <p className="text-sm text-destructive">
+                        {errors.preferredDate.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label htmlFor="preferredTime">Preferred Time *</Label>
+                    <Select
+                      value={selectedTime}
+                      onValueChange={(value) =>
+                        setValue("preferredTime", value)
+                      }
+                    >
+                      <SelectTrigger className="p-3 rounded-lg">
+                        <SelectValue placeholder="Select a time">
+                          <div className="flex items-center space-x-2">
+                            <Clock className="h-4 w-4" />
+                            <span>{selectedTime || "Select a time"}</span>
+                          </div>
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {timeSlots.map((time) => (
+                          <SelectItem key={time} value={time}>
+                            {time}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.preferredTime && (
+                      <p className="text-sm text-destructive">
+                        {errors.preferredTime.message}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Purpose */}
                 <div className="space-y-3">
-                  <Label htmlFor="preferredTime">Preferred Time *</Label>
+                  <Label htmlFor="purpose">Purpose of Meeting *</Label>
                   <Select
-                    value={selectedTime}
-                    onValueChange={(value) => setValue("preferredTime", value)}
+                    value={selectedPurpose}
+                    onValueChange={(value) => setValue("purpose", value)}
                   >
                     <SelectTrigger className="p-3 rounded-lg">
-                      <SelectValue placeholder="Select a time">
-                        <div className="flex items-center space-x-2">
-                          <Clock className="h-4 w-4" />
-                          <span>{selectedTime || "Select a time"}</span>
-                        </div>
-                      </SelectValue>
+                      <SelectValue placeholder="Select the purpose of your meeting" />
                     </SelectTrigger>
                     <SelectContent>
-                      {timeSlots.map((time) => (
-                        <SelectItem key={time} value={time}>
-                          {time}
+                      {purposeOptions.map((purpose) => (
+                        <SelectItem key={purpose} value={purpose}>
+                          {purpose}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  {errors.preferredTime && (
+                  {errors.purpose && (
                     <p className="text-sm text-destructive">
-                      {errors.preferredTime.message}
+                      {errors.purpose.message}
                     </p>
                   )}
                 </div>
-              </div>
 
-              {/* Purpose */}
-              <div className="space-y-3">
-                <Label htmlFor="purpose">Purpose of Meeting *</Label>
-                <Select
-                  value={selectedPurpose}
-                  onValueChange={(value) => setValue("purpose", value)}
+                {/* ✅ Description field */}
+                <div className="space-y-3">
+                  <Label htmlFor="description">Description (Optional)</Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Tell us more about your needs or any specific questions you have..."
+                    rows={4}
+                    className="p-3 resize-none rounded-lg"
+                    {...register("description")}
+                  />
+                </div>
+
+                {/* Submit button */}
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isSubmitting}
                 >
-                  <SelectTrigger className="p-3 rounded-lg">
-                    <SelectValue placeholder="Select the purpose of your meeting" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {purposeOptions.map((purpose) => (
-                      <SelectItem key={purpose} value={purpose}>
-                        {purpose}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.purpose && (
-                  <p className="text-sm text-destructive">
-                    {errors.purpose.message}
-                  </p>
-                )}
-              </div>
-
-              {/* ✅ Description field */}
-              <div className="space-y-3">
-                <Label htmlFor="description">Description (Optional)</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Tell us more about your needs or any specific questions you have..."
-                  rows={4}
-                  className="p-3 resize-none rounded-lg"
-                  {...register("description")}
-                />
-              </div>
-
-              {/* Submit button */}
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <div className="flex items-center space-x-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground"></div>
-                    <span>Booking your Appointment...</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center space-x-2">
-                    <Calendar className="h-4 w-4" />
-                    <span>Book Appointment</span>
-                  </div>
-                )}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-    </section>
+                  {isSubmitting ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground"></div>
+                      <span>Booking your Appointment...</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-2">
+                      <Calendar className="h-4 w-4" />
+                      <span>Book Appointment</span>
+                    </div>
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+    </>
   );
 }

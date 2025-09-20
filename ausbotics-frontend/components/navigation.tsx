@@ -38,7 +38,7 @@ export function Navigation() {
     { href: "/", label: "Home" },
     { href: "/about", label: "About" },
     { href: "/how-it-works", label: "How It Works" },
-    { href: "/features", label: "Features" },
+
     { href: "/pricing", label: "Pricing" },
     { href: "/contact", label: "Contact" },
   ];

@@ -1,14 +1,8 @@
-import { Card } from "@/components/ui/card"
-import { Clock, DollarSign, TrendingUp, Users } from "lucide-react"
+import { Card } from "@/components/ui/card";
+import { Clock, DollarSign, TrendingUp, Users } from "lucide-react";
 
 export function ProcessBenefits() {
   const benefits = [
-    {
-      icon: Clock,
-      title: "Quick Setup",
-      description: "Get started in under 30 minutes",
-      stat: "< 30 min",
-    },
     {
       icon: DollarSign,
       title: "Cost Savings",
@@ -27,16 +21,18 @@ export function ProcessBenefits() {
       description: "Consistent service quality every time",
       stat: "95% Satisfaction",
     },
-  ]
+  ];
 
   return (
     <section className="py-20 bg-muted/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-3xl lg:text-4xl font-bold text-foreground mb-4">Why Our Process Works</h2>
+          <h2 className="text-3xl lg:text-4xl font-bold text-foreground mb-4">
+            Why Our Process Works
+          </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Our streamlined approach delivers measurable results from day one, helping businesses transform their
-            customer service operations.
+            Our streamlined approach delivers measurable results from day one,
+            helping businesses transform their customer service operations.
           </p>
         </div>
 
@@ -52,12 +48,16 @@ export function ProcessBenefits() {
               <div className="bg-secondary text-secondary-foreground font-bold text-lg px-4 py-2 rounded-full w-fit mx-auto mb-4">
                 {benefit.stat}
               </div>
-              <h3 className="text-lg font-semibold text-foreground mb-3">{benefit.title}</h3>
-              <p className="text-muted-foreground text-sm leading-relaxed">{benefit.description}</p>
+              <h3 className="text-lg font-semibold text-foreground mb-3">
+                {benefit.title}
+              </h3>
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                {benefit.description}
+              </p>
             </Card>
           ))}
         </div>
       </div>
     </section>
-  )
+  );
 }
